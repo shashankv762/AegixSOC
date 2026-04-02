@@ -10,6 +10,7 @@ import ProcessPanel from './components/ProcessPanel';
 import NetworkPanel from './components/NetworkPanel';
 import { RefreshCw, Clock } from 'lucide-react';
 import { api } from './api/client';
+import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
   const [user, setUser] = useState(() => {
@@ -77,38 +78,39 @@ export default function App() {
       case 'processes':
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold">System Processes</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-soc-text to-soc-muted">System Processes</h2>
             <ProcessPanel />
           </div>
         );
       case 'network':
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Network Activity</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-soc-text to-soc-muted">Network Activity</h2>
             <NetworkPanel />
           </div>
         );
       case 'alerts':
         return (
           <div className="max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold mb-6">Active Security Alerts</h2>
+            <h2 className="text-2xl font-bold mb-6 tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-soc-text to-soc-muted">Active Security Alerts</h2>
             <AlertsPanel onInvestigate={handleInvestigate} />
           </div>
         );
       case 'logs':
         return (
           <div className="space-y-6">
-            <h2 className="text-2xl font-bold">Comprehensive Log Stream</h2>
+            <h2 className="text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-soc-text to-soc-muted">Comprehensive Log Stream</h2>
             <LogFeed onSelectLog={setSelectedIncident} />
           </div>
         );
       case 'chatbot':
         return (
-          <div className="h-[calc(100vh-160px)] bg-soc-surface border border-soc-border rounded-2xl overflow-hidden flex flex-col items-center justify-center p-12 text-center">
-             <div className="w-20 h-20 bg-soc-purple/10 rounded-3xl flex items-center justify-center mb-6">
+          <div className="h-[calc(100vh-160px)] glass-panel rounded-2xl overflow-hidden flex flex-col items-center justify-center p-12 text-center relative">
+             <div className="absolute inset-0 bg-gradient-to-b from-soc-purple/5 to-transparent pointer-events-none"></div>
+             <div className="w-20 h-20 bg-soc-purple/10 rounded-3xl flex items-center justify-center mb-6 neon-border-blue">
                 <RefreshCw className="w-10 h-10 text-soc-purple animate-spin-slow" />
              </div>
-             <h2 className="text-2xl font-bold mb-2">AI Analyst Interface</h2>
+             <h2 className="text-2xl font-bold mb-2 neon-text-blue">AI Analyst Interface</h2>
              <p className="text-soc-muted max-w-md">Use the floating assistant in the bottom right to interact with the CyberSOC AI analyst from any page.</p>
           </div>
         );
@@ -121,40 +123,58 @@ export default function App() {
     <div className="min-h-screen bg-soc-bg text-soc-text flex dark">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} alertCount={alertCount} />
       
-      <main className="flex-1 ml-64 flex flex-col min-h-screen">
+      <main className="flex-1 ml-64 flex flex-col min-h-screen relative">
         {/* Top Bar */}
-        <header className="h-16 border-b border-soc-border bg-soc-surface/50 backdrop-blur-md sticky top-0 z-40 px-8 flex items-center justify-between">
+        <header className="h-20 glass-panel border-b border-soc-border/50 sticky top-0 z-40 px-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <h2 className="text-lg font-bold capitalize">{activeTab}</h2>
-            <div className="h-4 w-px bg-soc-border" />
-            <div className="flex items-center gap-2 text-soc-muted text-sm font-mono">
-              <Clock className="w-4 h-4" />
+            <h2 className="text-xl font-bold capitalize tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-soc-text to-soc-muted">{activeTab}</h2>
+            <div className="h-6 w-px bg-soc-border/50 hidden md:block" />
+            <div className="hidden md:flex items-center gap-2 text-soc-blue text-sm font-mono tracking-wider">
+              <span className="w-2 h-2 rounded-full bg-soc-blue animate-pulse shadow-[0_0_8px_#0ea5e9]"></span>
               {currentTime.toUTCString().replace('GMT', 'UTC')}
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <button 
               onClick={() => window.location.reload()}
-              className="p-2 hover:bg-soc-border rounded-lg transition-colors text-soc-muted hover:text-soc-text"
+              className="p-2 hover:bg-soc-surface/50 rounded-lg transition-colors text-soc-muted hover:text-soc-blue"
             >
               <RefreshCw className="w-5 h-5" />
             </button>
-            <button 
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-3 py-1.5 bg-soc-bg border border-soc-border rounded-lg text-xs font-bold text-soc-muted hover:text-soc-red hover:border-soc-red transition-all"
-            >
-              Logout
-            </button>
-            <div className="w-8 h-8 rounded-full bg-soc-blue/20 border border-soc-blue/40 flex items-center justify-center text-soc-blue font-bold text-xs">
-              {user.username.substring(0, 2).toUpperCase()}
+            <div className="h-6 w-px bg-soc-border/50" />
+            <div className="flex items-center gap-3">
+              <div className="text-right hidden md:block">
+                <div className="text-sm font-bold text-soc-text">{user.username}</div>
+                <div className="text-xs text-soc-muted font-mono uppercase">Role: {user.role || 'Analyst'}</div>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-soc-blue/10 border border-soc-blue/40 flex items-center justify-center text-soc-blue font-bold shadow-[0_0_10px_rgba(14,165,233,0.2)]">
+                {user.username.substring(0, 2).toUpperCase()}
+              </div>
+              <button 
+                onClick={handleLogout}
+                className="ml-2 px-3 py-1.5 bg-soc-red/10 border border-soc-red/30 rounded-lg text-xs font-bold text-soc-red hover:bg-soc-red/20 hover:border-soc-red/50 transition-all shadow-[0_0_10px_rgba(239,68,68,0.1)]"
+              >
+                Logout
+              </button>
             </div>
           </div>
         </header>
 
         {/* Content Area */}
-        <div className="flex-1 p-8">
-          {renderContent()}
+        <div className="flex-1 p-8 overflow-x-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className="h-full"
+            >
+              {renderContent()}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </main>
 

@@ -1,21 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --color-soc-bg: #0d1117;
-  --color-soc-surface: #161b22;
-  --color-soc-border: #30363d;
-  --color-soc-text: #c9d1d9;
-  --color-soc-muted: #8b949e;
-  --color-soc-green: #3fb950;
-  --color-soc-yellow: #d29922;
-  --color-soc-red: #f85149;
-  --color-soc-blue: #58a6ff;
-  --color-soc-purple: #bc8cff;
+  --color-soc-bg: #030305;
+  --color-soc-surface: #0a0a0f;
+  --color-soc-border: #1e293b;
+  --color-soc-text: #f8fafc;
+  --color-soc-muted: #64748b;
+  --color-soc-green: #10b981;
+  --color-soc-yellow: #eab308;
+  --color-soc-red: #ef4444;
+  --color-soc-blue: #0ea5e9;
+  --color-soc-purple: #8b5cf6;
+
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
 @layer base {
   body {
-    @apply bg-soc-bg text-soc-text font-sans;
+    @apply bg-soc-bg text-soc-text font-sans antialiased;
+    background-image: 
+      radial-gradient(circle at 15% 50%, rgba(14, 165, 233, 0.04) 0%, transparent 50%),
+      radial-gradient(circle at 85% 30%, rgba(139, 92, 246, 0.04) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+}
+
+@layer utilities {
+  .glass-panel {
+    @apply bg-soc-surface/80 backdrop-blur-xl border border-soc-border/60 shadow-[0_4px_24px_-4px_rgba(0,0,0,0.5)];
+  }
+  .neon-text-blue {
+    text-shadow: 0 0 12px rgba(14, 165, 233, 0.6);
+  }
+  .neon-border-blue {
+    box-shadow: 0 0 15px rgba(14, 165, 233, 0.15), inset 0 0 10px rgba(14, 165, 233, 0.05);
+  }
+  .neon-border-red {
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.15), inset 0 0 10px rgba(239, 68, 68, 0.05);
   }
 }
 
