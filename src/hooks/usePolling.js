@@ -1,13 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 export function usePolling(fetchFn, intervalMs, deps = []) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const fetchFnRef = useRef(fetchFn);
+  
+  useEffect(() => {
+    fetchFnRef.current = fetchFn;
+  }, [fetchFn]);
+
   const refresh = useCallback(async () => {
     try {
-      const response = await fetchFn();
+      const response = await fetchFnRef.current();
       setData(response.data);
       setError(null);
     } catch (err) {
@@ -15,7 +21,7 @@ export function usePolling(fetchFn, intervalMs, deps = []) {
     } finally {
       setLoading(false);
     }
-  }, [fetchFn]);
+  }, []);
 
   useEffect(() => {
     refresh();
