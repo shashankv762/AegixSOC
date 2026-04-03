@@ -16,5 +16,9 @@ export const ollamaService = {
 
   getHistory: (limit = 20) => {
     return db.prepare("SELECT * FROM chat_history ORDER BY created_at DESC LIMIT ?").all(limit).reverse();
+  },
+
+  searchHistory: (query: string, limit = 10) => {
+    return db.prepare("SELECT * FROM chat_history WHERE content LIKE ? ORDER BY created_at DESC LIMIT ?").all(`%${query}%`, limit);
   }
 };

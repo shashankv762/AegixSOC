@@ -11,6 +11,17 @@ router.get("/history", (req, res) => {
   res.json(history);
 });
 
+router.get("/search", (req, res) => {
+  try {
+    const query = req.query.q as string;
+    if (!query) return res.json([]);
+    const results = ollamaService.searchHistory(query);
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to search history" });
+  }
+});
+
 router.get("/context/:alertId", (req, res) => {
   try {
     const alertId = parseInt(req.params.alertId);

@@ -40,6 +40,7 @@ export const api = {
   acknowledgeAlert: (id, acknowledged) => client.patch(`/alerts/${id}/acknowledge`, { acknowledged }),
   sendChatMessage: (message, context_alert_id = null) => client.post('/chat', { message, context_alert_id }),
   getChatHistory: () => client.get('/chat/history'),
+  searchChatHistory: (query) => client.get('/chat/search', { params: { q: query } }),
   getChatContext: (alertId) => client.get(`/chat/context/${alertId}`),
   saveChatHistory: (role, content) => client.post('/chat/history', { role, content }),
   getProcesses: () => client.get('/system/processes'),

@@ -3,7 +3,7 @@ import { MessageSquare, Send, Bot, User, X, Minimize2, Maximize2, Sparkles } fro
 import ReactMarkdown from 'react-markdown';
 import { api } from '../api/client';
 import { motion, AnimatePresence } from 'motion/react';
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type, FunctionDeclaration } from "@google/genai";
 
 interface ChatbotProps {
   contextAlertId: number | null;
@@ -61,21 +61,68 @@ export default function Chatbot({ contextAlertId, onClearContext }: ChatbotProps
       }
 
       // 3. Call Gemini
-      const systemPrompt = `You are CyberSOC, an expert AI security analyst assistant embedded in a Security Operations Center platform. You analyze log anomalies, explain attack patterns, and suggest mitigation strategies. Be concise, precise, and use security terminology correctly. Format responses in clear sections when explaining incidents. Never hallucinate IP addresses or usernames — only reference data provided to you.`;
+      const systemPrompt = `You are CyberSOC, an expert AI security analyst assistant embedded in a Security Operations Center platform. You analyze log anomalies, explain attack patterns, and suggest mitigation strategies. Be concise, precise, and use security terminology correctly. Format responses in clear sections when explaining incidents. Never hallucinate IP addresses or usernames — only reference data provided to you. You can search historical chat data using the searchChatHistory tool to find relevant past conversations or analyses.`;
 
-      const chat = ai.chats.create({
-        model: "gemini-3-flash-preview",
-        config: {
-          systemInstruction: systemPrompt,
+      const searchChatHistoryFunctionDeclaration: FunctionDeclaration = {
+        name: "searchChatHistory",
+        description: "Search past chat history for relevant conversations, alerts, or system events.",
+        parameters: {
+          type: Type.OBJECT,
+          properties: {
+            query: {
+              type: Type.STRING,
+              description: "The search query to find in the chat history.",
+            },
+          },
+          required: ["query"],
         },
-      });
+      };
 
       let prompt = userContent;
       if (contextData) {
         prompt = `ALERT CONTEXT:\n${JSON.stringify(contextData, null, 2)}\n---\nUSER MESSAGE: ${prompt}`;
       }
 
-      const response = await chat.sendMessage({ message: prompt });
+      let response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          systemInstruction: systemPrompt,
+          tools: [{ functionDeclarations: [searchChatHistoryFunctionDeclaration] }],
+        },
+      });
+
+      const functionCalls = response.functionCalls;
+      if (functionCalls && functionCalls.length > 0) {
+        const call = functionCalls[0];
+        if (call.name === "searchChatHistory") {
+          const query = call.args.query;
+          const searchRes = await api.searchChatHistory(query);
+          const searchResults = searchRes.data;
+          
+          const previousContent = response.candidates?.[0]?.content;
+          response = await ai.models.generateContent({
+            model: "gemini-3-flash-preview",
+            contents: [
+              previousContent,
+              {
+                role: "user",
+                parts: [{
+                  functionResponse: {
+                    name: "searchChatHistory",
+                    response: { results: searchResults }
+                  }
+                }]
+              }
+            ],
+            config: {
+              systemInstruction: systemPrompt,
+              tools: [{ functionDeclarations: [searchChatHistoryFunctionDeclaration] }],
+            },
+          });
+        }
+      }
+
       const aiContent = response.text;
 
       // 4. Save AI message to history
