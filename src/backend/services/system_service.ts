@@ -55,10 +55,22 @@ export const systemService = {
   },
 
   getProcesses: (limit = 100) => {
-    return db.prepare("SELECT * FROM processes ORDER BY timestamp DESC LIMIT ?").all(limit);
+    return db.prepare(`
+      SELECT * FROM processes 
+      WHERE timestamp > datetime('now', '-15 seconds')
+      GROUP BY pid
+      ORDER BY cpu_percent DESC 
+      LIMIT ?
+    `).all(limit);
   },
 
   getNetworkConnections: (limit = 100) => {
-    return db.prepare("SELECT * FROM network_connections ORDER BY timestamp DESC LIMIT ?").all(limit);
+    return db.prepare(`
+      SELECT * FROM network_connections 
+      WHERE timestamp > datetime('now', '-15 seconds')
+      GROUP BY local_address, remote_address
+      ORDER BY timestamp DESC 
+      LIMIT ?
+    `).all(limit);
   }
 };

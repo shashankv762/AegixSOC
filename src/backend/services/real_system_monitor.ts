@@ -11,18 +11,27 @@ export const realSystemMonitor = {
     // Poll processes every 5 seconds
     setInterval(async () => {
       try {
-        // Use ps to get real processes
-        const { stdout } = await execAsync('ps -eo pid,comm,%cpu,%mem,args --no-headers | head -n 50');
+        // Use ps to get real processes with their state
+        const { stdout } = await execAsync('ps -eo pid,%cpu,%mem,state,comm --no-headers | head -n 50');
         const lines = stdout.split('\n').filter(line => line.trim() !== '');
         
         for (const line of lines) {
           const parts = line.trim().split(/\s+/);
           if (parts.length >= 5) {
             const pid = parseInt(parts[0], 10);
-            const name = parts[1];
-            const cpu = parseFloat(parts[2]);
-            const mem = parseFloat(parts[3]);
-            const args = parts.slice(4).join(' ');
+            const cpu = parseFloat(parts[1]);
+            const mem = parseFloat(parts[2]);
+            const stateChar = parts[3];
+            const name = parts.slice(4).join(' ');
+            
+            let status = 'Unknown';
+            if (stateChar === 'R') status = 'Running';
+            else if (stateChar === 'S') status = 'Sleeping';
+            else if (stateChar === 'I') status = 'Idle';
+            else if (stateChar === 'Z') status = 'Zombie';
+            else if (stateChar === 'T') status = 'Stopped';
+            else if (stateChar === 'D') status = 'Disk Sleep';
+            else status = stateChar;
             
             // Basic heuristic for suspicious processes
             const isSuspicious = name.includes('nc') || name.includes('nmap') || name.includes('miner');
@@ -34,8 +43,8 @@ export const realSystemMonitor = {
                 name,
                 cpu_percent: cpu,
                 memory_usage: mem,
-                exe_path: args.substring(0, 100), // truncate
-                status: 'running'
+                exe_path: name,
+                status: status
               },
               risk_score: isSuspicious ? 0.8 : 0.1,
               flagged: isSuspicious

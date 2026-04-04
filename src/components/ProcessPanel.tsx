@@ -111,6 +111,9 @@ export default function ProcessPanel() {
                 <td className="px-4 py-3 font-mono text-soc-blue">{proc.pid}</td>
                 <td className="px-4 py-3 font-medium flex items-center gap-2">
                   {proc.name}
+                  {proc.status && proc.status !== 'Running' && (
+                    <span className="text-soc-muted text-xs font-normal">({proc.status})</span>
+                  )}
                   {proc.is_suspicious && (
                     <AlertTriangle className="w-3 h-3 text-soc-red" />
                   )}
@@ -123,7 +126,7 @@ export default function ProcessPanel() {
                 </td>
                 <td className="px-4 py-3">
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
-                    proc.status === 'running' ? 'bg-soc-green/10 text-soc-green' : 'bg-soc-muted/10 text-soc-muted'
+                    proc.status === 'Running' ? 'bg-soc-green/10 text-soc-green' : 'bg-soc-muted/10 text-soc-muted'
                   }`}>
                     {proc.status}
                   </span>

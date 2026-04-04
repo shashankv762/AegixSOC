@@ -103,8 +103,8 @@ export const logService = {
       const totalLogs = db.prepare("SELECT COUNT(*) as count FROM logs").get() as any;
       const anomaliesToday = db.prepare("SELECT COUNT(*) as count FROM logs WHERE is_anomaly = 1 AND timestamp >= date('now')").get() as any;
       const eventsByType = db.prepare("SELECT event_type, COUNT(*) as count FROM logs GROUP BY event_type").all() as any[];
-      const processCount = db.prepare("SELECT COUNT(*) as count FROM processes").get() as any;
-      const networkCount = db.prepare("SELECT COUNT(*) as count FROM network_connections").get() as any;
+      const processCount = db.prepare("SELECT COUNT(DISTINCT pid) as count FROM processes WHERE timestamp > datetime('now', '-15 seconds') AND status = 'Running'").get() as any;
+      const networkCount = db.prepare("SELECT COUNT(DISTINCT local_address || remote_address) as count FROM network_connections WHERE timestamp > datetime('now', '-15 seconds')").get() as any;
       
       // Last 24h timeline
       const timeline = db.prepare(`
