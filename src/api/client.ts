@@ -23,9 +23,9 @@ client.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('soc_token');
-      localStorage.removeItem('soc_user');
-      window.dispatchEvent(new Event('soc_unauthorized'));
+      console.warn('API returned 401 Unauthorized. Token may be expired.');
+      // We no longer aggressively log out here because Firebase handles token refresh.
+      // If the user is truly unauthorized, Firebase's onIdTokenChanged will fire with null.
     }
     return Promise.reject(error);
   }
@@ -56,5 +56,13 @@ export const api = {
   // IPS Endpoints
   getBlockedIps: () => client.get('/ips/blocked'),
   blockIp: (ip, reason) => client.post('/ips/block', { ip, reason }),
-  unblockIp: (ip) => client.delete(`/ips/unblock/${ip}`)
+  unblockIp: (ip) => client.delete(`/ips/unblock/${ip}`),
+
+  // Phase 1 Endpoints
+  getPhase1Threats: () => client.get('/phase1/threats'),
+  getPhase1Layers: () => client.get('/phase1/layers'),
+  getPhase1Memory: () => client.get('/phase1/memory'),
+
+  // Sentinel AI Brain
+  getSentinelHistory: () => client.get('/sentinel/history')
 };

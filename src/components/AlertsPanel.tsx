@@ -32,13 +32,13 @@ export default function AlertsPanel({ onInvestigate }: AlertsPanelProps) {
       await api.acknowledgeAlert(id, true);
       toast.success('Alert acknowledged', {
         style: {
-          background: '#1e1e2e',
+          background: '#000000',
           color: '#10b981',
           border: '1px solid rgba(16, 185, 129, 0.5)',
         },
         iconTheme: {
           primary: '#10b981',
-          secondary: '#1e1e2e',
+          secondary: '#000000',
         },
       });
       refresh();

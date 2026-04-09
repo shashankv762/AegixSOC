@@ -40,7 +40,7 @@ export default function LoginChart() {
               fontFamily="DM Mono"
             />
             <Tooltip 
-              contentStyle={{ backgroundColor: 'rgba(17, 21, 30, 0.9)', backdropFilter: 'blur(8px)', border: '1px solid rgba(24, 29, 40, 0.8)', borderRadius: '8px' }}
+              contentStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.9)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
               itemStyle={{ fontSize: '12px', fontFamily: 'DM Mono' }}
             />
             <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px', fontFamily: 'DM Sans' }} />

@@ -2,9 +2,9 @@
 @import "tailwindcss";
 
 @theme {
-  --color-soc-bg: #080b10;
-  --color-soc-surface: #11151e;
-  --color-soc-border: #181d28; /* Maps to --card in HTML */
+  --color-soc-bg: #000000;
+  --color-soc-surface: #000000;
+  --color-soc-border: #050505; /* Maps to --card in HTML */
   --color-soc-text: #f3f4f6;
   --color-soc-muted: #9ca3af;
   --color-soc-green: #10b981;
@@ -47,7 +47,7 @@
     width: 200%;
     height: 200%;
     z-index: -2;
-    background: radial-gradient(circle at 50% 50%, rgba(0, 229, 192, 0.06) 0%, transparent 50%);
+    background: radial-gradient(circle at 50% 50%, rgba(0, 229, 192, 0.04) 0%, transparent 50%);
     animation: pulse-bg 15s ease-in-out infinite alternate;
     pointer-events: none;
   }
@@ -137,7 +137,7 @@
 
 @layer utilities {
   .glass-panel {
-    @apply bg-soc-border border border-white/5 rounded-lg transition-all duration-300;
+    @apply bg-black/80 backdrop-blur-xl border border-white/10 rounded-lg transition-all duration-300;
   }
   .glass-panel:hover {
     @apply border-soc-cyan shadow-[0_10px_40px_rgba(0,229,192,0.08)];
@@ -179,7 +179,7 @@
 
   /* Inputs from HTML */
   .input-c {
-    @apply w-full p-3 bg-black/50 border border-white/10 rounded text-white font-sans transition-all duration-300;
+    @apply w-full p-3 bg-black border border-white/10 rounded text-white font-sans transition-all duration-300;
   }
   .input-c:focus {
     @apply outline-none border-soc-cyan shadow-[0_0_10px_rgba(0,229,192,0.2)];

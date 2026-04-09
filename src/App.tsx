@@ -11,6 +11,7 @@ import NetworkPanel from './components/NetworkPanel';
 import ForensicsPanel from './components/ForensicsPanel';
 import UserManagement from './components/UserManagement';
 import IPSManagement from './components/IPSManagement';
+import SentinelBrain from './components/SentinelBrain';
 import { RefreshCw, MessageSquare, X } from 'lucide-react';
 import { api } from './api/client';
 import { motion, AnimatePresence } from 'motion/react';
@@ -39,9 +40,16 @@ export default function App() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((firebaseUser) => {
+    const unsubscribe = auth.onIdTokenChanged(async (firebaseUser) => {
       setIsAuthReady(true);
       if (firebaseUser) {
+        try {
+          const token = await firebaseUser.getIdToken();
+          localStorage.setItem('soc_token', token);
+        } catch (e) {
+          console.error("Failed to get ID token", e);
+        }
+
         // Sync local user state with Firebase if logged in
         const saved = localStorage.getItem('soc_user');
         const localUser = saved ? JSON.parse(saved) : null;
@@ -52,6 +60,25 @@ export default function App() {
             photoURL: firebaseUser.photoURL,
             displayName: firebaseUser.displayName || localUser.username
           });
+        } else if (!localUser) {
+           // If no local user but firebase user exists, create a basic one
+           const appUser = {
+            id: firebaseUser.uid,
+            username: firebaseUser.email?.split('@')[0] || firebaseUser.displayName || 'User',
+            role: 'analyst',
+            isFirebase: true
+          };
+          localStorage.setItem('soc_user', JSON.stringify(appUser));
+          setUser(appUser);
+        }
+      } else {
+        // Only clear if the current user was a Firebase user
+        const saved = localStorage.getItem('soc_user');
+        const localUser = saved ? JSON.parse(saved) : null;
+        if (localUser && localUser.isFirebase) {
+          localStorage.removeItem('soc_token');
+          localStorage.removeItem('soc_user');
+          setUser(null);
         }
       }
     });
@@ -65,6 +92,9 @@ export default function App() {
 
   useEffect(() => {
     if (!user) return;
+    // If it's a Firebase user, wait for the token to be refreshed/verified
+    if (user.isFirebase && !isAuthReady) return;
+
     const fetchAlerts = async () => {
       try {
         const res = await api.getAlerts({ acknowledged: false });
@@ -80,13 +110,13 @@ export default function App() {
                   duration: 6000,
                   position: 'top-right',
                   style: {
-                    background: '#1e1e2e',
+                    background: '#000000',
                     color: '#ef4444',
                     border: '1px solid rgba(239, 68, 68, 0.5)',
                   },
                   iconTheme: {
                     primary: '#ef4444',
-                    secondary: '#1e1e2e',
+                    secondary: '#000000',
                   },
                 });
               }
@@ -100,7 +130,7 @@ export default function App() {
     fetchAlerts();
     const interval = setInterval(fetchAlerts, 10000);
     return () => clearInterval(interval);
-  }, [user]);
+  }, [user, isAuthReady]);
 
   useEffect(() => {
     const handleUnauthorized = () => {
@@ -155,6 +185,8 @@ export default function App() {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard onSelectLog={setSelectedIncident} onInvestigate={handleInvestigate} />;
+      case 'sentinel':
+        return <SentinelBrain />;
       case 'processes':
         return (
           <div className="space-y-6">
@@ -347,10 +379,10 @@ export default function App() {
       {activeTab !== 'chatbot' && (
         <button
           onClick={() => setIsChatFloatingOpen(!isChatFloatingOpen)}
-          className={`fixed bottom-8 right-8 w-14 h-14 rounded-full flex items-center justify-center z-50 transition-all duration-300 shadow-lg ${
+          className={`fixed bottom-8 right-8 w-14 h-14 rounded-full flex items-center justify-center z-50 transition-all duration-300 shadow-lg border ${
             isChatFloatingOpen 
-              ? 'bg-soc-red text-white rotate-90' 
-              : 'bg-soc-purple text-white hover:scale-110 shadow-[0_0_20px_rgba(139,92,246,0.5)]'
+              ? 'bg-black border-soc-red text-soc-red rotate-90 shadow-[0_0_15px_rgba(255,71,87,0.3)]' 
+              : 'bg-black border-soc-purple text-soc-purple hover:scale-110 shadow-[0_0_20px_rgba(139,92,246,0.3)]'
           }`}
         >
           {isChatFloatingOpen ? (
@@ -358,7 +390,7 @@ export default function App() {
           ) : (
             <div className="relative flex items-center justify-center w-full h-full">
               <div className="absolute inset-0 bg-white blur-md opacity-20 rounded-full animate-pulse"></div>
-              <AegixLogo className="scale-[0.15] origin-center relative z-10" />
+              <AegixLogo className="w-8 h-8 relative z-10" />
             </div>
           )}
         </button>

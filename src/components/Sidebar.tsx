@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Bell, List, MessageSquare, ShieldCheck, Globe, Cpu, SearchCode, Users } from 'lucide-react';
+import { LayoutDashboard, Bell, List, MessageSquare, ShieldCheck, Globe, Cpu, SearchCode, Users, Brain } from 'lucide-react';
 import { motion } from 'motion/react';
 import AegixLogo from './AegixLogo';
 
@@ -13,6 +13,7 @@ interface SidebarProps {
 export default function Sidebar({ activeTab, setActiveTab, alertCount, userRole }: SidebarProps) {
   const menuItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'sentinel', label: 'Sentinel Brain', icon: Brain },
     { id: 'processes', label: 'Processes', icon: Cpu },
     { id: 'network', label: 'Network', icon: Globe },
     { id: 'alerts', label: 'Alerts', icon: Bell, badge: alertCount },

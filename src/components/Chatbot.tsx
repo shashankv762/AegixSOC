@@ -281,7 +281,7 @@ export default function Chatbot({ contextData, onClearContext, autoSend, isFloat
         <div className="p-4 bg-soc-purple/10 border-b border-soc-border flex justify-between items-center">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-soc-bg rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(0,229,192,0.4)] overflow-hidden relative">
-              <AegixLogo className="scale-[0.15] origin-center" />
+              <AegixLogo className="w-8 h-8" />
             </div>
             <div>
               <h3 className="text-lg font-bold text-soc-text font-syne">AegixChain AI Analyst</h3>
@@ -302,11 +302,10 @@ export default function Chatbot({ contextData, onClearContext, autoSend, isFloat
         <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 bg-soc-bg/30">
           {chatHistory.length === 0 && (
             <div className="h-full flex flex-col items-center justify-center text-center p-6">
-              <div className="w-32 h-32 flex items-center justify-center mb-6 relative">
-                <AegixLogo className="scale-[0.4] origin-center" />
+              <div className="flex items-center justify-center mb-6 relative">
+                <AegixLogo className="w-48 h-48" hideText={false} />
               </div>
-              <h4 className="text-2xl font-bold text-soc-text mb-3 font-syne">Welcome to AegixChain AI</h4>
-              <p className="text-soc-muted mb-8 max-w-md">I'm your advanced security analyst assistant. I can analyze alerts, search logs, and provide remediation steps.</p>
+              <p className="text-soc-muted mb-8 max-w-md mt-16">I'm your advanced security analyst assistant. I can analyze alerts, search logs, and provide remediation steps.</p>
               <div className="grid grid-cols-2 gap-4 w-full max-w-2xl">
                 {starterPrompts.map((prompt, i) => (
                   <button
@@ -326,7 +325,7 @@ export default function Chatbot({ contextData, onClearContext, autoSend, isFloat
                 <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center shadow-md overflow-hidden relative ${
                   msg.role === 'user' ? 'bg-soc-cyan' : 'bg-soc-surface border border-soc-border'
                 }`}>
-                  {msg.role === 'user' ? <User className="w-5 h-5 text-soc-bg" /> : <AegixLogo className="scale-[0.15] origin-center" />}
+                  {msg.role === 'user' ? <User className="w-5 h-5 text-soc-bg" /> : <AegixLogo className="w-8 h-8" />}
                 </div>
                 <div className={`p-4 rounded-2xl text-sm shadow-sm ${
                   msg.role === 'user' ? 'bg-soc-cyan text-soc-bg rounded-tr-none' : 'bg-soc-surface border border-soc-border text-soc-text rounded-tl-none'
@@ -344,7 +343,7 @@ export default function Chatbot({ contextData, onClearContext, autoSend, isFloat
             <div className="flex justify-start">
               <div className="flex gap-4">
                 <div className="w-10 h-10 rounded-xl bg-soc-surface border border-soc-border flex items-center justify-center shadow-md overflow-hidden relative">
-                  <AegixLogo className="scale-[0.15] origin-center" />
+                  <AegixLogo className="w-8 h-8" />
                 </div>
                 <div className="p-4 bg-soc-surface border border-soc-border rounded-2xl rounded-tl-none flex gap-2 items-center shadow-sm">
                   <div className="w-2 h-2 bg-soc-purple rounded-full animate-bounce" />

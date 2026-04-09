@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ShieldAlert, Cpu, ListChecks, Code, MessageSquare, SearchCode } from 'lucide-react';
+import { X, ShieldAlert, Cpu, ListChecks, Code, MessageSquare, SearchCode, Database, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface IncidentDetailProps {
@@ -75,6 +75,28 @@ export default function IncidentDetail({ incident, onClose, onAskAI, onForensics
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 space-y-8">
+            {/* Episodic Memory & Self-Hardening Context */}
+            <section className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl bg-soc-purple/5 border border-soc-purple/20 flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-soc-purple text-xs font-bold uppercase tracking-widest">
+                  <Database className="w-4 h-4" />
+                  Episodic Memory
+                </div>
+                <p className="text-xs text-soc-text/80">
+                  This attack fingerprint has been embedded into the Vector DB. Future similar patterns will trigger immediate autonomous remediation.
+                </p>
+              </div>
+              <div className="p-4 rounded-xl bg-soc-cyan/5 border border-soc-cyan/20 flex flex-col gap-2">
+                <div className="flex items-center gap-2 text-soc-cyan text-xs font-bold uppercase tracking-widest">
+                  <Zap className="w-4 h-4" />
+                  Self-Hardening
+                </div>
+                <p className="text-xs text-soc-text/80">
+                  Detection Layer 4 has been auto-strengthened based on this event. The system is now more resilient to this specific attack vector.
+                </p>
+              </div>
+            </section>
+
             {/* Log Details */}
             <section>
               <h3 className="text-sm font-bold text-soc-muted uppercase tracking-widest mb-4 flex items-center gap-2">

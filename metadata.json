@@ -1,5 +1,5 @@
 {
   "name": "AegixChain AI",
-  "description": "Autonomous AI-Powered Security Operations Center (SOC) Platform for blockchain networks.",
+  "description": "Autonomous AI-Powered SOC with Episodic Threat Memory and Layered Self-Hardening. A living security system that gets smarter every time it's attacked.",
   "requestFramePermissions": []
 }

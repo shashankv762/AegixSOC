@@ -11,11 +11,14 @@ import authRoutes from "./src/backend/routes/auth.js";
 import systemRoutes from "./src/backend/routes/system.js";
 import usersRoutes from "./src/backend/routes/users.js";
 import ipsRoutes from "./src/backend/routes/ips.js";
+import phase1Routes from "./src/backend/routes/phase1.js";
 import { apiLimiter } from "./src/backend/middleware/rateLimit.js";
 import { ipsMiddleware } from "./src/backend/middleware/ips.js";
 import { logService } from "./src/backend/services/log_service.js";
 import { alertService } from "./src/backend/services/alert_service.js";
 import { realSystemMonitor } from "./src/backend/services/real_system_monitor.js";
+import { sensorBridge } from "./src/backend/services/sensor_bridge.js";
+import { sentinelBridge } from "./src/backend/services/sentinel_bridge.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -66,6 +69,11 @@ async function startServer() {
   app.use("/api/system", systemRoutes);
   app.use("/api/users", usersRoutes);
   app.use("/api/ips", ipsRoutes);
+  app.use("/api/phase1", phase1Routes);
+
+  app.get("/api/sentinel/history", (req, res) => {
+    res.json(sentinelBridge.getHistory());
+  });
 
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", model_ready: true });
@@ -91,6 +99,12 @@ async function startServer() {
     
     // Start real system monitor
     realSystemMonitor.start();
+    
+    // Start Python Sensor Daemon bridge
+    sensorBridge.start();
+    
+    // Start Sentinel AI Brain bridge
+    sentinelBridge.start();
 
     // Start auto-acknowledge interval (every minute)
     setInterval(() => {

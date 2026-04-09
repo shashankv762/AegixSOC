@@ -1,4 +1,5 @@
 import { db } from "../database.js";
+import { sentinelBridge } from "./sentinel_bridge.js";
 
 export const settingsService = {
   getSettings: () => {
@@ -44,6 +45,21 @@ export const alertService = {
       alert.score,
       JSON.stringify(alert.mitigations)
     );
+    
+    // Feed to Sentinel AI Brain
+    try {
+      sentinelBridge.processEvent({
+        id: info.lastInsertRowid,
+        event_type: 'alert',
+        severity: alert.severity,
+        reason: alert.reason,
+        score: alert.score,
+        log_id: alert.log_id
+      });
+    } catch (e) {
+      console.error("Failed to send alert to Sentinel:", e);
+    }
+
     return info.lastInsertRowid;
   },
 

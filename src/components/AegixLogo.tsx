@@ -1,12 +1,12 @@
 import React from 'react';
 import './AegixLogo.css';
 
-export default function AegixLogo({ className = "w-10 h-10" }: { className?: string }) {
+export default function AegixLogo({ className = "w-10 h-10", hideText = true }: { className?: string, hideText?: boolean }) {
   return (
-    <div className={`aegix-logo relative ${className}`}>
-      <div className="glow-orb"></div>
-      <div className="mark">
-        <svg viewBox="0 0 280 280" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <div className={`aegix-wrap ${className}`}>
+      <div className="aegix-mark relative w-full h-full">
+        <div className="aegix-glow-orb"></div>
+        <svg viewBox="0 0 280 280" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
           <defs>
             <radialGradient id="cg" cx="50%" cy="50%" r="50%">
               <stop offset="0%"   stopColor="#00e5c0" stopOpacity="0.40"/>
@@ -85,13 +85,26 @@ export default function AegixLogo({ className = "w-10 h-10" }: { className?: str
 
           <g className="core-g">
             <circle cx="140" cy="140" r="42" fill="url(#cg)"/>
-            <circle cx="140" cy="140" r="30" fill="#080b10" stroke="#00e5c0" strokeWidth="2"/>
+            <circle cx="140" cy="140" r="30" fill="#000000" stroke="#00e5c0" strokeWidth="2"/>
             <circle className="core-fill" cx="140" cy="140" r="22" fill="#00e5c0"/>
-            <circle cx="140" cy="140" r="8.5" fill="#080b10"/>
+            <circle cx="140" cy="140" r="8.5" fill="#000000"/>
             <circle cx="137" cy="137" r="3"   fill="#00e5c0" opacity="0.45"/>
           </g>
         </svg>
       </div>
+
+      {!hideText && (
+        <>
+          <div className="divider mt-8 mb-6"></div>
+
+          <div className="wordmark">
+            <div className="wm-name">
+              Aegix<span className="cyan">Chain</span><span className="ai">AI</span>
+            </div>
+            <div className="wm-tag">Blockchain Security Intelligence</div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

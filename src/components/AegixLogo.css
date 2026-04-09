@@ -9,21 +9,21 @@
 /* ── Glow orb ── */
 .aegix-glow-orb {
   position: absolute;
-  width: 440px; height: 440px; border-radius: 50%;
+  width: 150%; height: 150%; border-radius: 50%;
   background: radial-gradient(circle, rgba(0,229,192,0.11) 0%, transparent 65%);
   top: 50%; left: 50%;
-  transform: translate(-50%, -52%);
+  transform: translate(-50%, -50%);
   pointer-events: none;
   animation: breathe 4s ease-in-out infinite;
 }
 @keyframes breathe {
-  0%,100% { opacity:0.75; transform:translate(-50%,-52%) scale(1);   }
-  50%      { opacity:1;    transform:translate(-50%,-52%) scale(1.1); }
+  0%,100% { opacity:0.75; transform:translate(-50%,-50%) scale(1);   }
+  50%      { opacity:1;    transform:translate(-50%,-50%) scale(1.1); }
 }
 
 /* ── SVG mark ── */
-.aegix-mark { position: relative; width: 280px; height: 280px; }
-.aegix-mark svg { width: 280px; height: 280px; overflow: visible; }
+.aegix-mark { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
+.aegix-mark svg { width: 100%; height: 100%; max-width: 100%; max-height: 100%; overflow: visible; }
 
 /* ── Spinning rings ── */
 @keyframes spin-cw  { to { transform: rotate( 360deg); } }
@@ -91,3 +91,33 @@
   to   { opacity:1; transform:scale(1);   }
 }
 .core-g { animation: core-in 0.5s 2.1s cubic-bezier(0.34,1.56,0.64,1) both; transform-origin: 140px 140px; }
+
+/* ── Wordmark ── */
+@keyframes fade-up {
+  from { opacity:0; transform:translateY(14px); }
+  to   { opacity:1; transform:translateY(0);    }
+}
+.wordmark {
+  animation: fade-up 0.7s 2.4s ease both;
+  opacity: 0; animation-fill-mode: forwards;
+  text-align: center;
+}
+.wm-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 42px; font-weight: 900;
+  color: #f0f2f5; letter-spacing: -1.5px; line-height: 1;
+}
+.wm-name .cyan { color: #00e5c0; }
+.wm-name .ai   { font-size: 22px; color: #8ba8b5; vertical-align: super; margin-left: 3px; }
+.wm-tag {
+  font-family: 'DM Mono', monospace;
+  font-size: 10.5px; letter-spacing: 4px;
+  color: #2a5060; margin-top: 9px; text-transform: uppercase;
+}
+
+.divider {
+  width: 220px; height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(0,229,192,0.28), transparent);
+  animation: fade-up 0.5s 2.6s ease both;
+  opacity: 0; animation-fill-mode: forwards;
+}

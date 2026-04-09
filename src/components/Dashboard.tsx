@@ -1,9 +1,9 @@
 import React from 'react';
 import { usePolling } from '../hooks/usePolling';
 import { api } from '../api/client';
-import { ShieldAlert, Bell, Activity, Target, PieChart as PieChartIcon } from 'lucide-react';
+import { ShieldAlert, Bell, Activity, Target, PieChart as PieChartIcon, Brain, Network, Cpu, Server, Monitor } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import LoginChart from './LoginChart';
 import LogFeed from './LogFeed';
 import AlertsPanel from './AlertsPanel';
@@ -16,10 +16,15 @@ interface DashboardProps {
 export default function Dashboard({ onSelectLog, onInvestigate }: DashboardProps) {
   const { data: stats } = usePolling(() => api.getStats(), 5000);
   const { data: alerts } = usePolling(() => api.getAlerts({ limit: 5 }), 5000);
+  const { data: layersData } = usePolling(() => api.getPhase1Layers(), 1500);
+  const { data: memoryData } = usePolling(() => api.getPhase1Memory(), 1500);
+
+  const layers = layersData || [];
+  const memory = memoryData || [];
 
   const metricCards = [
     { label: 'Total Logs Today', value: stats?.total_logs || 0, icon: Activity, color: 'text-soc-cyan', border: 'border-soc-cyan/30', trend: '+12%' },
-    { label: 'Active Processes', value: stats?.process_count || 0, icon: Target, color: 'text-soc-purple', border: 'border-soc-purple/30', trend: 'STABLE' },
+    { label: 'Intelligence Nodes', value: memoryData?.length || 0, icon: Brain, color: 'text-soc-purple', border: 'border-soc-purple/30', trend: 'GROWING' },
     { label: 'Network Conns', value: stats?.network_count || 0, icon: Activity, color: 'text-soc-cyan', border: 'border-soc-cyan/30', trend: 'ACTIVE' },
     { label: 'Critical Alerts', value: (Array.isArray(alerts) ? alerts : [])?.filter(a => a.severity === 'Critical').length || 0, icon: ShieldAlert, color: 'text-soc-red', border: 'border-soc-red/30', trend: 'URGENT' },
   ];
@@ -42,6 +47,27 @@ export default function Dashboard({ onSelectLog, onInvestigate }: DashboardProps
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 300, damping: 24 } }
+  };
+
+  const getLayerIcon = (id: string) => {
+    switch(id) {
+      case 'L0': return <Network className="w-4 h-4" />;
+      case 'L1': return <ShieldAlert className="w-4 h-4" />;
+      case 'L2': return <Brain className="w-4 h-4" />;
+      case 'L3': return <Cpu className="w-4 h-4" />;
+      case 'L4': return <Server className="w-4 h-4" />;
+      case 'L5': return <Monitor className="w-4 h-4" />;
+      default: return <Activity className="w-4 h-4" />;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch(status) {
+      case 'green': return 'bg-soc-green shadow-[0_0_8px_rgba(16,185,129,0.5)]';
+      case 'amber': return 'bg-soc-yellow shadow-[0_0_8px_rgba(234,179,8,0.5)]';
+      case 'red': return 'bg-soc-red shadow-[0_0_8px_rgba(239,68,68,0.5)] animate-pulse';
+      default: return 'bg-soc-muted';
+    }
   };
 
   return (
@@ -83,7 +109,94 @@ export default function Dashboard({ onSelectLog, onInvestigate }: DashboardProps
         ))}
       </div>
 
-      {/* Row 2: Charts */}
+      {/* Row 2: Layer Health & Episodic Threat Memory */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* System Intelligence Summary */}
+        <motion.div variants={itemVariants} className="glass-panel p-6 rounded-xl border border-soc-purple/20 bg-soc-purple/5 flex flex-col justify-center relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <Brain className="w-24 h-24 text-soc-purple" />
+          </div>
+          <h3 className="text-soc-purple font-bold font-syne text-lg mb-2">System Intelligence</h3>
+          <p className="text-soc-text text-sm leading-relaxed relative z-10">
+            AegixChain utilizes <span className="text-soc-purple font-bold">Episodic Threat Memory</span> to embed attack fingerprints. 
+            <br /><br />
+            <span className="italic text-soc-muted">"The system gets smarter every time it's attacked."</span>
+          </p>
+          <div className="mt-6 flex items-center gap-2">
+            <div className="flex -space-x-2">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="w-6 h-6 rounded-full bg-soc-purple/20 border border-soc-purple/40 flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-soc-purple animate-pulse" style={{ animationDelay: `${i * 0.2}s` }} />
+                </div>
+              ))}
+            </div>
+            <span className="text-[10px] text-soc-muted font-mono uppercase tracking-widest">Learning Loops Active</span>
+          </div>
+        </motion.div>
+
+        {/* Layer Health */}
+        <motion.div variants={itemVariants} className="glass-panel rounded-xl flex flex-col overflow-hidden h-[350px]">
+          <div className="p-4 border-b border-white/10 bg-black/40">
+            <h2 className="font-syne font-bold text-soc-text flex items-center gap-2">
+              <Activity className="w-5 h-5 text-soc-cyan" />
+              Live System Health
+            </h2>
+          </div>
+          <div className="flex-1 p-4 space-y-4 overflow-y-auto">
+            {layers.map((layer: any) => (
+              <div key={layer.id} className="p-3 rounded-lg border border-white/5 bg-black/40 hover:bg-white/5 transition-colors">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2 text-soc-text font-bold text-sm">
+                    {getLayerIcon(layer.id)}
+                    {layer.id} — {layer.name}
+                  </div>
+                  <div className={`w-3 h-3 rounded-full ${getStatusColor(layer.status)}`} />
+                </div>
+                <div className="text-xs text-soc-muted font-mono">{layer.message}</div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Episodic Threat Memory */}
+        <motion.div variants={itemVariants} className="lg:col-span-2 glass-panel rounded-xl flex flex-col overflow-hidden h-[350px]">
+          <div className="p-4 border-b border-white/10 bg-black/40 flex justify-between items-center">
+            <h2 className="font-syne font-bold text-soc-text flex items-center gap-2">
+              <Brain className="w-5 h-5 text-soc-purple" />
+              Episodic Threat Memory
+            </h2>
+            <div className="text-[10px] font-bold text-soc-purple bg-soc-purple/10 px-2 py-1 rounded border border-soc-purple/30 animate-pulse">
+              SYSTEM LEARNING ACTIVE
+            </div>
+          </div>
+          <div className="flex-1 p-4 overflow-y-auto relative">
+            <div className="absolute left-6 top-4 bottom-4 w-px bg-white/10"></div>
+            <div className="space-y-6 relative z-10">
+              <AnimatePresence initial={false}>
+                {memory.map((mem: any) => (
+                  <motion.div
+                    key={mem.id}
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex gap-4 relative"
+                  >
+                    <div className="w-4 h-4 rounded-full bg-soc-purple border-4 border-black shrink-0 mt-1 shadow-[0_0_10px_rgba(127,119,221,0.5)]" />
+                    <div className="flex-1 pb-4">
+                      <div className="text-xs text-soc-muted font-mono mb-1">
+                        {new Date(mem.timestamp).toLocaleTimeString()}
+                      </div>
+                      <div className="text-sm font-bold text-soc-text">{mem.action}</div>
+                      <div className="text-xs text-soc-muted mt-1">{mem.details}</div>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+
+      {/* Row 3: Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <motion.div variants={itemVariants} className="lg:col-span-2">
           <LoginChart />
@@ -110,7 +223,7 @@ export default function Dashboard({ onSelectLog, onInvestigate }: DashboardProps
                   ))}
                 </Pie>
                 <RechartsTooltip 
-                  contentStyle={{ backgroundColor: 'rgba(17, 21, 30, 0.9)', backdropFilter: 'blur(8px)', border: '1px solid rgba(24, 29, 40, 0.8)', borderRadius: '8px' }}
+                  contentStyle={{ backgroundColor: 'rgba(0, 0, 0, 0.9)', backdropFilter: 'blur(8px)', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: '8px' }}
                   itemStyle={{ color: '#f3f4f6' }}
                 />
               </PieChart>
@@ -127,7 +240,7 @@ export default function Dashboard({ onSelectLog, onInvestigate }: DashboardProps
         </motion.div>
       </div>
 
-      {/* Row 3: Live Feed & Alerts */}
+      {/* Row 4: Live Feed & Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <motion.div variants={itemVariants} className="lg:col-span-2">
           <LogFeed onSelectLog={onSelectLog} />

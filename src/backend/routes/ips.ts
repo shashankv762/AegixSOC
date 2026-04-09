@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { ipsService } from "../services/ips_service.js";
 import { authMiddleware, adminMiddleware } from "../middleware/auth.js";
+import { logService } from "../services/log_service.js";
 
 const router = Router();
 
@@ -23,6 +24,7 @@ router.get("/blocked", (req, res) => {
 router.post("/block", (req, res) => {
   try {
     const { ip, reason } = req.body;
+    const user = (req as any).user;
     
     if (!ip) {
       return res.status(400).json({ error: "IP address is required" });
@@ -32,6 +34,16 @@ router.post("/block", (req, res) => {
     const success = ipsService.blockIp(ip, blockReason);
     
     if (success) {
+      // Log the action
+      logService.processAndSaveLog({
+        timestamp: new Date().toISOString(),
+        source_ip: ip,
+        username: user?.username || "admin",
+        event_type: "ips_action",
+        status_code: 200,
+        payload: { action: "block", reason: blockReason }
+      }).catch(console.error);
+
       res.json({ message: `IP ${ip} successfully blocked` });
     } else {
       res.status(500).json({ error: "Failed to block IP" });
@@ -46,9 +58,20 @@ router.post("/block", (req, res) => {
 router.delete("/unblock/:ip", (req, res) => {
   try {
     const { ip } = req.params;
+    const user = (req as any).user;
     const success = ipsService.unblockIp(ip);
     
     if (success) {
+      // Log the action
+      logService.processAndSaveLog({
+        timestamp: new Date().toISOString(),
+        source_ip: ip,
+        username: user?.username || "admin",
+        event_type: "ips_action",
+        status_code: 200,
+        payload: { action: "unblock" }
+      }).catch(console.error);
+
       res.json({ message: `IP ${ip} successfully unblocked` });
     } else {
       res.status(500).json({ error: "Failed to unblock IP" });

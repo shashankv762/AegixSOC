@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { usePolling } from '../hooks/usePolling';
 import { api } from '../api/client';
-import { AlertCircle, CheckCircle2, Activity, Filter, X } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Activity, Filter, X, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
 interface LogFeedProps {
@@ -145,7 +145,9 @@ export default function LogFeed({ onSelectLog }: LogFeedProps) {
                   key={log.id}
                   onClick={() => onSelectLog(log)}
                   className={`cursor-pointer transition-all duration-200 hover:bg-soc-surface/80 ${
-                    log.is_anomaly ? 'bg-soc-red/5 hover:bg-soc-red/10 border-l-2 border-soc-red' : 'border-l-2 border-transparent hover:border-soc-cyan/50'
+                    log.is_anomaly ? 'bg-soc-red/5 hover:bg-soc-red/10 border-l-2 border-soc-red' : 
+                    log.event_type === 'ips_action' ? 'bg-soc-purple/5 hover:bg-soc-purple/10 border-l-2 border-soc-purple' :
+                    'border-l-2 border-transparent hover:border-soc-cyan/50'
                   }`}
                 >
                   <td className="px-4 py-3 text-soc-muted whitespace-nowrap font-mono text-xs">
@@ -153,7 +155,10 @@ export default function LogFeed({ onSelectLog }: LogFeedProps) {
                   </td>
                   <td className="px-4 py-3 font-mono text-soc-cyan text-xs">{log.source_ip}</td>
                   <td className="px-4 py-3">
-                    <span className="capitalize font-medium">{log.event_type.replace(/_/g, ' ')}</span>
+                    <div className="flex items-center gap-2">
+                      {log.event_type === 'ips_action' && <Shield className="w-3 h-3 text-soc-purple" />}
+                      <span className="capitalize font-medium">{log.event_type.replace(/_/g, ' ')}</span>
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-soc-muted font-mono text-xs">{log.username}</td>
                   <td className="px-4 py-3">
