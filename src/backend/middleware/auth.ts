@@ -18,26 +18,31 @@ export const authMiddleware = async (req: Request, res: Response, next: NextFunc
     
     if (decodedToken && decodedToken.iss && decodedToken.iss.includes('securetoken.google.com')) {
       // Verify with Firebase Admin
-      const firebaseUser = await adminAuth.verifyIdToken(token);
-      
-      // Assign role based on email or default to analyst
-      // Avoid using getFirestore() here as it requires service account credentials
-      let role = 'analyst';
-      if (firebaseUser.email === 'blueparasite1234@gmail.com' || firebaseUser.email === '1dt24cy038@dsatm.edu.in') {
-        role = 'admin';
+      try {
+        const firebaseUser = await adminAuth.verifyIdToken(token);
+        
+        // Assign role based on email or default to analyst
+        // Avoid using getFirestore() here as it requires service account credentials
+        let role = 'analyst';
+        if (firebaseUser.email === 'blueparasite1234@gmail.com' || firebaseUser.email === '1dt24cy038@dsatm.edu.in') {
+          role = 'admin';
+        }
+        
+        (req as any).user = {
+          id: firebaseUser.uid,
+          username: firebaseUser.email?.split('@')[0] || 'User',
+          role: role,
+          isFirebase: true
+        };
+        return next();
+      } catch (verifyErr) {
+        console.error(`Firebase token verification failed explicitly:`, verifyErr);
+        require('fs').appendFileSync('/app/applet/auth_errors.log', new Date().toISOString() + ' - ' + (verifyErr instanceof Error ? verifyErr.message : String(verifyErr)) + '\n');
+        return res.status(401).json({ error: 'Unauthorized: Invalid Firebase token', details: verifyErr instanceof Error ? verifyErr.message : String(verifyErr) });
       }
-      
-      (req as any).user = {
-        id: firebaseUser.uid,
-        username: firebaseUser.email?.split('@')[0] || 'User',
-        role: role,
-        isFirebase: true
-      };
-      return next();
     }
   } catch (err) {
-    console.warn(`Firebase token verification failed:`, err);
-    // Fall back to normal JWT verification if Firebase fails or it's not a Firebase token
+    console.warn(`Error decoding token:`, err);
   }
 
   const decoded = authUtils.verifyToken(token);

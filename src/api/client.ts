@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { auth } from '../firebase';
 
 const client = axios.create({
   baseURL: '/api',
@@ -8,8 +9,19 @@ const client = axios.create({
 
 // Add a request interceptor to include the JWT token
 client.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('soc_token');
+  async (config) => {
+    let token = localStorage.getItem('soc_token');
+    
+    // If Firebase user is logged in, get the latest token (which handles refresh)
+    if (auth.currentUser) {
+      try {
+        token = await auth.currentUser.getIdToken();
+        localStorage.setItem('soc_token', token);
+      } catch (e) {
+        console.error("Failed to get Firebase token", e);
+      }
+    }
+    
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -24,8 +36,7 @@ client.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       console.warn('API returned 401 Unauthorized. Token may be expired.');
-      // We no longer aggressively log out here because Firebase handles token refresh.
-      // If the user is truly unauthorized, Firebase's onIdTokenChanged will fire with null.
+      window.dispatchEvent(new CustomEvent('soc_unauthorized'));
     }
     return Promise.reject(error);
   }
@@ -64,5 +75,8 @@ export const api = {
   getPhase1Memory: () => client.get('/phase1/memory'),
 
   // Sentinel AI Brain
-  getSentinelHistory: () => client.get('/sentinel/history')
+  getSentinelHistory: () => client.get('/sentinel/history'),
+
+  // Forensics
+  generateDeepAnalysis: (query, searchType, logs) => client.post('/forensics/analyze', { query, searchType, logs })
 };

@@ -12,8 +12,11 @@ import systemRoutes from "./src/backend/routes/system.js";
 import usersRoutes from "./src/backend/routes/users.js";
 import ipsRoutes from "./src/backend/routes/ips.js";
 import phase1Routes from "./src/backend/routes/phase1.js";
+import forensicsRoutes from "./src/backend/routes/forensics.js";
 import { apiLimiter } from "./src/backend/middleware/rateLimit.js";
 import { ipsMiddleware } from "./src/backend/middleware/ips.js";
+import { deceptionMiddleware } from "./src/backend/middleware/deception.js";
+import { ipsService } from "./src/backend/services/ips_service.js";
 import { logService } from "./src/backend/services/log_service.js";
 import { alertService } from "./src/backend/services/alert_service.js";
 import { realSystemMonitor } from "./src/backend/services/real_system_monitor.js";
@@ -35,31 +38,17 @@ async function startServer() {
 
   // Apply IPS Middleware globally BEFORE any other routes
   app.use(ipsMiddleware);
-
-  // Middleware to log all incoming API requests
-  app.use("/api/", (req, res, next) => {
-    // Skip logging for high-frequency polling endpoints to avoid spam
-    if (!req.path.includes('/logs') && !req.path.includes('/system') && !req.path.includes('/alerts')) {
-      const sourceIp = req.ip || req.socket.remoteAddress || "unknown";
-      const userAgent = req.headers['user-agent'] || "unknown";
-      
-      // Log asynchronously
-      logService.processAndSaveLog({
-        timestamp: new Date().toISOString(),
-        source_ip: sourceIp,
-        username: "system",
-        event_type: "api_access",
-        status_code: 200,
-        payload: { method: req.method, path: req.path, user_agent: userAgent }
-      }).catch(console.error);
-    }
-    next();
-  });
+  
+  // Apply Deception/Honeypot Middleware
+  app.use(deceptionMiddleware);
 
   app.use("/api/", apiLimiter);
 
   // Initialize Database
   await initDb();
+  
+  // Initialize IPS Cache
+  ipsService.init();
 
   // API Routes
   app.use("/api/auth", authRoutes);
@@ -70,6 +59,7 @@ async function startServer() {
   app.use("/api/users", usersRoutes);
   app.use("/api/ips", ipsRoutes);
   app.use("/api/phase1", phase1Routes);
+  app.use("/api/forensics", forensicsRoutes);
 
   app.get("/api/sentinel/history", (req, res) => {
     res.json(sentinelBridge.getHistory());

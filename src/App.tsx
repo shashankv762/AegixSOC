@@ -134,6 +134,8 @@ export default function App() {
 
   useEffect(() => {
     const handleUnauthorized = () => {
+      localStorage.removeItem('soc_token');
+      localStorage.removeItem('soc_user');
       setUser(null);
     };
     window.addEventListener('soc_unauthorized', handleUnauthorized);

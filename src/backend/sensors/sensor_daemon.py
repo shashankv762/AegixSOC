@@ -18,10 +18,25 @@ except ImportError:
     Observer = None
     FileSystemEventHandler = object
 
+import os
+import sys
+
+# Suppress scapy warnings and errors from polluting stdout
+os.environ["scapy_suppress_warnings"] = "1"
+import logging
+logging.getLogger("scapy.runtime").setLevel(logging.ERROR)
+
 try:
-    from scapy.all import sniff, IP, TCP, UDP
-except ImportError:
+    # Redirect stderr temporarily to catch scapy load errors
+    old_stderr = sys.stderr
+    with open(os.devnull, 'w') as f:
+        sys.stderr = f
+        from scapy.all import sniff, IP, TCP, UDP
+    sys.stderr = old_stderr
+except Exception as e:
+    sys.stderr = old_stderr
     sniff = None
+    print(json.dumps({"event_type": "System Warning", "source": "network_monitor", "severity": 3, "raw_data": f"scapy module failed to load: {e}. Network monitoring disabled."}), flush=True)
 
 # --- Emitter ---
 def emit_event(event_type, source, severity, raw_data, mitre_ttp=""):
@@ -133,7 +148,7 @@ def packet_callback(packet):
 
 def net_monitor():
     if not sniff:
-        emit_event("System Error", "net_monitor", 8, "scapy module not found. Network monitoring disabled.")
+        emit_event("System Warning", "net_monitor", 3, "scapy module not found. Network monitoring disabled.")
         return
 
     emit_event("System Info", "net_monitor", 1, "Network monitor started.")

@@ -19,8 +19,8 @@ export default function Dashboard({ onSelectLog, onInvestigate }: DashboardProps
   const { data: layersData } = usePolling(() => api.getPhase1Layers(), 1500);
   const { data: memoryData } = usePolling(() => api.getPhase1Memory(), 1500);
 
-  const layers = layersData || [];
-  const memory = memoryData || [];
+  const layers = Array.isArray(layersData) ? layersData : [];
+  const memory = Array.isArray(memoryData) ? memoryData : [];
 
   const metricCards = [
     { label: 'Total Logs Today', value: stats?.total_logs || 0, icon: Activity, color: 'text-soc-cyan', border: 'border-soc-cyan/30', trend: '+12%' },
@@ -112,13 +112,13 @@ export default function Dashboard({ onSelectLog, onInvestigate }: DashboardProps
       {/* Row 2: Layer Health & Episodic Threat Memory */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* System Intelligence Summary */}
-        <motion.div variants={itemVariants} className="glass-panel p-6 rounded-xl border border-soc-purple/20 bg-soc-purple/5 flex flex-col justify-center relative overflow-hidden">
+        <motion.div variants={itemVariants} className="lg:col-span-2 glass-panel p-6 rounded-xl border border-soc-purple/20 bg-soc-purple/5 flex flex-col justify-center relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-10">
             <Brain className="w-24 h-24 text-soc-purple" />
           </div>
           <h3 className="text-soc-purple font-bold font-syne text-lg mb-2">System Intelligence</h3>
           <p className="text-soc-text text-sm leading-relaxed relative z-10">
-            AegixChain utilizes <span className="text-soc-purple font-bold">Episodic Threat Memory</span> to embed attack fingerprints. 
+            AegixChain utilizes <span className="text-soc-purple font-bold">Episodic Threat Memory</span> and an <span className="text-soc-cyan font-bold">Online Deep Learning Network</span> to embed attack fingerprints and predict future threats. Powered by a local <span className="text-soc-purple font-bold">SmolLM-135M</span> model for autonomous reasoning.
             <br /><br />
             <span className="italic text-soc-muted">"The system gets smarter every time it's attacked."</span>
           </p>
@@ -191,6 +191,45 @@ export default function Dashboard({ onSelectLog, onInvestigate }: DashboardProps
                   </motion.div>
                 ))}
               </AnimatePresence>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Real-Time Resource Scanning */}
+        <motion.div variants={itemVariants} className="glass-panel rounded-xl flex flex-col overflow-hidden h-[350px] border-t-2 border-soc-cyan/50">
+          <div className="p-4 border-b border-white/10 bg-black/40">
+            <h2 className="font-syne font-bold text-soc-text flex items-center gap-2">
+              <Cpu className="w-5 h-5 text-soc-cyan" />
+              Real-Time Scanning
+            </h2>
+          </div>
+          <div className="flex-1 p-5 flex flex-col justify-between">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-soc-cyan font-syne drop-shadow-[0_0_10px_rgba(0,229,192,0.5)]">
+                {stats?.process_count || 0}
+              </div>
+              <div className="text-xs text-soc-muted uppercase tracking-widest mt-1">Active Processors</div>
+            </div>
+            
+            <div className="space-y-3 mt-4">
+              <p className="text-xs text-soc-text/80 text-center mb-4">
+                Utilizing live system resources to continuously scan and build advanced defense <span className="text-soc-cyan font-bold">layer by layer</span>.
+              </p>
+              
+              {[1, 2, 3, 4].map((layer) => (
+                <div key={layer} className="relative h-6 bg-black/40 rounded border border-white/5 overflow-hidden flex items-center px-2">
+                  <motion.div 
+                    initial={{ width: 0 }}
+                    animate={{ width: '100%' }}
+                    transition={{ duration: 2, repeat: Infinity, repeatType: "reverse", delay: layer * 0.2 }}
+                    className="absolute left-0 top-0 h-full bg-soc-cyan/20"
+                  />
+                  <div className="relative z-10 flex justify-between w-full text-[10px] font-mono font-bold text-soc-cyan">
+                    <span>LAYER {layer}</span>
+                    <span className="animate-pulse">HARDENING...</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </motion.div>

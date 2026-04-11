@@ -186,7 +186,7 @@ export default function Chatbot({ contextData, onClearContext, autoSend, isFloat
       let response = await chat.sendMessage({ message: prompt });
 
       let callCount = 0;
-      while (response.functionCalls && response.functionCalls.length > 0 && callCount < 3) {
+      while (response.functionCalls && response.functionCalls.length > 0 && callCount < 5) {
         const functionResponses = [];
 
         for (const call of response.functionCalls) {
@@ -198,17 +198,16 @@ export default function Chatbot({ contextData, onClearContext, autoSend, isFloat
               const searchRes = await api.searchChatHistory(query);
               functionResponseData = searchRes.data;
             } else if (call.name === "getRecentAlerts") {
-              const limit = (call.args.limit as number) || 10;
+              const limit = (call.args.limit as number) || 5;
               const alertsRes = await api.getAlerts({ limit });
               functionResponseData = alertsRes.data;
             } else if (call.name === "getRecentLogs") {
-              const limit = (call.args.limit as number) || 10;
+              const limit = (call.args.limit as number) || 5;
               const logsRes = await api.getLogs({ limit });
               functionResponseData = logsRes.data;
             } else if (call.name === "getRecentNetworkConnections") {
-              const limit = (call.args.limit as number) || 10;
+              const limit = (call.args.limit as number) || 5;
               const networkRes = await api.getNetwork();
-              // Filter to limit if needed, though backend usually returns a reasonable set
               functionResponseData = Array.isArray(networkRes.data) ? networkRes.data.slice(0, limit) : networkRes.data;
             } else if (call.name === "getAlertDetails") {
               const alertId = call.args.alertId as number;
@@ -228,20 +227,28 @@ export default function Chatbot({ contextData, onClearContext, autoSend, isFloat
           });
         }
 
-        response = await chat.sendMessage({
-          message: functionResponses
-        });
+        console.log("Sending function responses:", JSON.stringify(functionResponses).substring(0, 200) + "...");
+        response = await chat.sendMessage({ message: functionResponses });
+        console.log("Received response after function call. Text:", response.text, "Function calls:", response.functionCalls?.map(c => c.name));
         
         callCount++;
       }
 
       let aiContent = response.text;
-      if (!aiContent) {
-        if (response.functionCalls && response.functionCalls.length > 0) {
-          aiContent = "I have gathered the necessary data but need more specific instructions to analyze it further. What would you like to know?";
-        } else {
-          aiContent = "I have analyzed the data. Let me know if you need specific details.";
+      console.log("Final aiContent:", aiContent);
+      
+      if (!aiContent || (response.functionCalls && response.functionCalls.length > 0)) {
+        console.log("Model still wants to call functions or returned no text. Forcing text generation...");
+        try {
+          response = await chat.sendMessage({ message: "Please provide a comprehensive summary and analysis based on the data you just gathered. Do not call any more functions. Just give me everything you know about the context with precise and accurate answers." });
+          aiContent = response.text;
+        } catch (e) {
+          console.error("Error forcing text generation:", e);
         }
+      }
+
+      if (!aiContent) {
+        aiContent = "I have analyzed the data, but I am having trouble formatting the response. Please check the raw logs or alerts for more details.";
       }
 
       // 4. Save AI message to history

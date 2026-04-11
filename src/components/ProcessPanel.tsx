@@ -8,6 +8,7 @@ export default function ProcessPanel() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<string>('cpu_percent');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [expandedPid, setExpandedPid] = useState<number | null>(null);
 
   const filteredAndSortedProcesses = useMemo(() => {
     if (!processes || !Array.isArray(processes)) return [];
@@ -106,39 +107,61 @@ export default function ProcessPanel() {
           </thead>
           <tbody className="divide-y divide-soc-border/30">
             {filteredAndSortedProcesses.map((proc: any) => (
-              <tr
-                key={proc.id}
-                className={`transition-all hover:bg-soc-purple/5 group ${
-                  proc.is_suspicious ? 'bg-soc-red/5' : ''
-                }`}
-              >
-                <td className="px-6 py-4 font-mono text-soc-cyan">{proc.pid}</td>
-                <td className="px-6 py-4 font-medium flex items-center gap-2">
-                  {proc.name}
-                  {proc.status && proc.status !== 'Running' && (
-                    <span className="text-soc-muted text-xs font-normal">({proc.status})</span>
-                  )}
-                  {proc.is_suspicious && (
-                    <AlertTriangle className="w-3 h-3 text-soc-red" />
-                  )}
-                </td>
-                <td className={`px-6 py-4 ${(proc.cpu_percent || 0) > 50 ? 'text-soc-yellow' : 'text-soc-muted'}`}>
-                  {(proc.cpu_percent || 0).toFixed(1)}%
-                </td>
-                <td className="px-6 py-4 text-soc-muted">
-                  {(proc.memory_usage || 0).toFixed(1)}%
-                </td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-tight ${
-                    proc.status === 'Running' ? 'border-soc-green/30 bg-soc-green/10 text-soc-green' : 'border-soc-muted/30 bg-soc-muted/10 text-soc-muted'
-                  }`}>
-                    {proc.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-xs text-soc-muted truncate max-w-[200px]" title={proc.exe_path}>
-                  {proc.exe_path}
-                </td>
-              </tr>
+              <React.Fragment key={proc.id}>
+                <tr
+                  onClick={() => setExpandedPid(expandedPid === proc.pid ? null : proc.pid)}
+                  className={`transition-all hover:bg-soc-purple/5 group cursor-pointer ${
+                    proc.is_suspicious ? 'bg-soc-red/5' : ''
+                  } ${expandedPid === proc.pid ? 'bg-soc-purple/10' : ''}`}
+                >
+                  <td className="px-6 py-4 font-mono text-soc-cyan">{proc.pid}</td>
+                  <td className="px-6 py-4 font-medium flex items-center gap-2">
+                    {proc.name}
+                    {proc.status && proc.status !== 'Running' && (
+                      <span className="text-soc-muted text-xs font-normal">({proc.status})</span>
+                    )}
+                    {proc.is_suspicious && (
+                      <AlertTriangle className="w-3 h-3 text-soc-red" />
+                    )}
+                  </td>
+                  <td className={`px-6 py-4 ${(proc.cpu_percent || 0) > 50 ? 'text-soc-yellow' : 'text-soc-muted'}`}>
+                    {(proc.cpu_percent || 0).toFixed(1)}%
+                  </td>
+                  <td className="px-6 py-4 text-soc-muted">
+                    {(proc.memory_usage || 0).toFixed(1)}%
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`px-2 py-0.5 rounded border text-[10px] font-bold uppercase tracking-tight ${
+                      proc.status === 'Running' ? 'border-soc-green/30 bg-soc-green/10 text-soc-green' : 'border-soc-muted/30 bg-soc-muted/10 text-soc-muted'
+                    }`}>
+                      {proc.status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-xs text-soc-muted truncate max-w-[200px]" title={proc.exe_path}>
+                    {proc.exe_path}
+                  </td>
+                </tr>
+                {expandedPid === proc.pid && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-4 bg-soc-bg/50 border-t border-soc-border/30">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <div className="text-soc-muted text-xs uppercase tracking-widest mb-1">Executable Path</div>
+                          <div className="font-mono text-soc-text break-all bg-black/30 p-2 rounded border border-soc-border/50">{proc.exe_path || 'N/A'}</div>
+                        </div>
+                        <div>
+                          <div className="text-soc-muted text-xs uppercase tracking-widest mb-1">User Context</div>
+                          <div className="font-mono text-soc-text bg-black/30 p-2 rounded border border-soc-border/50">{proc.user || 'N/A'}</div>
+                        </div>
+                        <div className="md:col-span-2">
+                          <div className="text-soc-muted text-xs uppercase tracking-widest mb-1">Command Line Arguments</div>
+                          <div className="font-mono text-soc-text break-all bg-black/30 p-2 rounded border border-soc-border/50 whitespace-pre-wrap">{proc.cmdline || 'N/A'}</div>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
             ))}
           </tbody>
         </table>

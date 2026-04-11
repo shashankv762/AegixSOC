@@ -1,6 +1,19 @@
 import { db } from "../database.js";
 
+// In-memory cache for fast lookups
+const blockedIpsCache = new Set<string>();
+
 export const ipsService = {
+  init: () => {
+    try {
+      const rows = db.prepare("SELECT ip FROM blocked_ips").all() as { ip: string }[];
+      rows.forEach(row => blockedIpsCache.add(row.ip));
+      console.log(`[IPS] Loaded ${blockedIpsCache.size} blocked IPs from database.`);
+    } catch (err) {
+      console.error("[IPS] Failed to load blocked IPs on startup:", err);
+    }
+  },
+
   blockIp: (ip: string, reason: string) => {
     try {
       const stmt = db.prepare(`
@@ -8,6 +21,7 @@ export const ipsService = {
         VALUES (?, ?)
       `);
       stmt.run(ip, reason);
+      blockedIpsCache.add(ip);
       console.log(`[IPS] Blocked IP: ${ip} - Reason: ${reason}`);
       return true;
     } catch (err) {
@@ -20,6 +34,7 @@ export const ipsService = {
     try {
       const stmt = db.prepare("DELETE FROM blocked_ips WHERE ip = ?");
       stmt.run(ip);
+      blockedIpsCache.delete(ip);
       console.log(`[IPS] Unblocked IP: ${ip}`);
       return true;
     } catch (err) {
@@ -29,13 +44,7 @@ export const ipsService = {
   },
 
   isIpBlocked: (ip: string): boolean => {
-    try {
-      const result = db.prepare("SELECT 1 FROM blocked_ips WHERE ip = ?").get(ip);
-      return !!result;
-    } catch (err) {
-      console.error(`[IPS] Failed to check IP ${ip}:`, err);
-      return false;
-    }
+    return blockedIpsCache.has(ip);
   },
 
   getBlockedIps: () => {

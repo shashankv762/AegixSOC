@@ -11,18 +11,20 @@ export const realSystemMonitor = {
     // Poll processes every 5 seconds
     setInterval(async () => {
       try {
-        // Use ps to get real processes with their state
-        const { stdout } = await execAsync('ps -eo pid,%cpu,%mem,state,comm --no-headers | head -n 50');
+        // Use ps to get real processes with their state, user, and args, sorted by CPU usage
+        const { stdout } = await execAsync('ps -eo pid,%cpu,%mem,state,user,comm,args --sort=-%cpu --no-headers | head -n 100');
         const lines = stdout.split('\n').filter(line => line.trim() !== '');
         
         for (const line of lines) {
           const parts = line.trim().split(/\s+/);
-          if (parts.length >= 5) {
+          if (parts.length >= 7) {
             const pid = parseInt(parts[0], 10);
             const cpu = parseFloat(parts[1]);
             const mem = parseFloat(parts[2]);
             const stateChar = parts[3].charAt(0);
-            const name = parts.slice(4).join(' ');
+            const user = parts[4];
+            const name = parts[5];
+            const cmdline = parts.slice(6).join(' ');
             
             let status = 'Unknown';
             if (stateChar === 'R') status = 'Running';
@@ -44,6 +46,8 @@ export const realSystemMonitor = {
                 cpu_percent: cpu,
                 memory_usage: mem,
                 exe_path: name,
+                cmdline,
+                user,
                 status: status
               },
               risk_score: isSuspicious ? 0.8 : 0.1,
@@ -60,7 +64,7 @@ export const realSystemMonitor = {
     setInterval(async () => {
       try {
         // Use ss to get real network connections
-        const { stdout } = await execAsync('ss -tunap | grep ESTAB | head -n 50 || true');
+        const { stdout } = await execAsync('ss -tunap | grep ESTAB || true');
         const lines = stdout.split('\n').filter(line => line.trim() !== '');
         
         for (const line of lines) {

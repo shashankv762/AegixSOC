@@ -88,11 +88,21 @@ export async function initDb() {
         cpu_percent FLOAT,
         memory_usage FLOAT,
         exe_path TEXT,
+        cmdline TEXT,
+        user VARCHAR(100),
         status VARCHAR(50),
         is_suspicious BOOLEAN DEFAULT 0,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
+    
+    // Attempt to add columns if they don't exist (for existing databases)
+    try {
+      db.exec(`ALTER TABLE processes ADD COLUMN cmdline TEXT`);
+    } catch (e) { /* Ignore if exists */ }
+    try {
+      db.exec(`ALTER TABLE processes ADD COLUMN user VARCHAR(100)`);
+    } catch (e) { /* Ignore if exists */ }
 
     // Network Connections Table
     db.exec(`

@@ -4,7 +4,7 @@ import { api } from '../api/client';
 import { Brain, ShieldAlert, Cpu, Activity, CheckCircle2, AlertTriangle, Zap, FileText, X, Skull, Volume2, VolumeX } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
-import ThreatWeather from './ThreatWeather';
+import DefenceInDepth from './DefenceInDepth';
 import AttackerProfile from './AttackerProfile';
 import CampaignNamer from './CampaignNamer';
 import ReplayTimeline from './ReplayTimeline';
@@ -16,7 +16,7 @@ export default function SentinelBrain() {
   const [isVoiceEnabled, setIsVoiceEnabled] = React.useState(false);
   const lastAlertId = useRef<string | null>(null);
   
-  const events = history || [];
+  const events = Array.isArray(history) ? history : [];
 
   // Sentinel Voice: TTS for critical alerts
   useEffect(() => {
@@ -67,10 +67,10 @@ export default function SentinelBrain() {
         </div>
       </div>
 
-      {/* Row 1: Threat Weather & Campaign */}
+      {/* Row 1: Defence In Depth & Campaign */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <ThreatWeather />
+          <DefenceInDepth />
         </div>
         <div className="space-y-6">
           {events[0]?.campaign && <CampaignNamer campaign={events[0].campaign} />}
@@ -108,11 +108,19 @@ export default function SentinelBrain() {
               </div>
               <div className="flex justify-between items-center p-3 rounded-lg bg-black/40 border border-white/5">
                 <span className="text-sm text-soc-muted">Agent Framework</span>
-                <span className="text-xs font-mono text-soc-green bg-soc-green/10 px-2 py-1 rounded">LangGraph</span>
+                <span className="text-xs font-mono text-soc-green bg-soc-green/10 px-2 py-1 rounded">Multi-Agent (LangGraph)</span>
               </div>
               <div className="flex justify-between items-center p-3 rounded-lg bg-black/40 border border-white/5">
-                <span className="text-sm text-soc-muted">Detection Engine</span>
-                <span className="text-xs font-mono text-soc-yellow bg-soc-yellow/10 px-2 py-1 rounded">Sigma + Yara + ML</span>
+                <span className="text-sm text-soc-muted">Decision Engine</span>
+                <span className="text-xs font-mono text-soc-red bg-soc-red/10 px-2 py-1 rounded">RL (PPO) Active</span>
+              </div>
+              <div className="flex justify-between items-center p-3 rounded-lg bg-black/40 border border-white/5">
+                <span className="text-sm text-soc-muted">Local LLM</span>
+                <span className="text-xs font-mono text-soc-purple bg-soc-purple/10 px-2 py-1 rounded">SmolLM-135M</span>
+              </div>
+              <div className="flex justify-between items-center p-3 rounded-lg bg-black/40 border border-white/5">
+                <span className="text-sm text-soc-muted">Deep Learning</span>
+                <span className="text-xs font-mono text-soc-cyan bg-soc-cyan/10 px-2 py-1 rounded">Online MLP Active</span>
               </div>
             </div>
           </div>

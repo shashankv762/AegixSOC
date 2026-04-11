@@ -7,8 +7,8 @@ export const systemService = {
     
     if (type === 'process') {
       const stmt = db.prepare(`
-        INSERT INTO processes (pid, name, cpu_percent, memory_usage, exe_path, status, is_suspicious)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO processes (pid, name, cpu_percent, memory_usage, exe_path, cmdline, user, status, is_suspicious)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
       stmt.run(
         details.pid,
@@ -16,6 +16,8 @@ export const systemService = {
         details.cpu_percent,
         details.memory_usage,
         details.exe_path,
+        details.cmdline || '',
+        details.user || 'unknown',
         details.status || 'running',
         flagged ? 1 : 0
       );

@@ -1,7 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Search, Download, ShieldAlert, AlertCircle, Clock, Database, User, Globe } from 'lucide-react';
+import { Search, Download, ShieldAlert, AlertCircle, Clock, Database, User, Globe, BrainCircuit } from 'lucide-react';
 import { api } from '../api/client';
 import { motion, AnimatePresence } from 'motion/react';
+import Markdown from 'react-markdown';
 
 export default function ForensicsPanel() {
   const [query, setQuery] = useState('');
@@ -9,6 +10,8 @@ export default function ForensicsPanel() {
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
+  const [analysisReport, setAnalysisReport] = useState<string | null>(null);
 
   useEffect(() => {
     const handleForensicsSearch = (e: any) => {
@@ -28,6 +31,7 @@ export default function ForensicsPanel() {
 
     setLoading(true);
     setSearched(true);
+    setAnalysisReport(null);
     try {
       const params: any = { limit: 500 };
       if (type === 'source_ip') {
@@ -41,6 +45,20 @@ export default function ForensicsPanel() {
       console.error("Failed to fetch forensics logs:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeepAnalysis = async () => {
+    if (!logs || logs.length === 0) return;
+    setAnalyzing(true);
+    try {
+      const res = await api.generateDeepAnalysis(query, searchType, logs);
+      setAnalysisReport(res.data.report);
+    } catch (err) {
+      console.error("Failed to generate deep analysis:", err);
+      setAnalysisReport("Error: Failed to generate deep analysis report. Please try again.");
+    } finally {
+      setAnalyzing(false);
     }
   };
 
@@ -168,8 +186,35 @@ export default function ForensicsPanel() {
                     </button>
                   </div>
                 </div>
+                <div>
+                  <button 
+                    onClick={handleDeepAnalysis} 
+                    disabled={logs.length === 0 || analyzing} 
+                    className="px-4 py-2 bg-soc-purple/20 border border-soc-purple/50 text-soc-purple rounded-xl font-bold hover:bg-soc-purple/30 transition-all disabled:opacity-50 flex items-center gap-2 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
+                  >
+                    <BrainCircuit className={`w-5 h-5 ${analyzing ? 'animate-pulse' : ''}`} /> 
+                    {analyzing ? 'Analyzing...' : 'Deep Analysis'}
+                  </button>
+                </div>
               </div>
             </div>
+
+            {/* Deep Analysis Report */}
+            {analysisReport && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                className="glass-panel rounded-2xl p-6 border-l-4 border-l-soc-purple"
+              >
+                <h3 className="font-bold flex items-center gap-2 text-soc-purple mb-4 font-syne text-xl">
+                  <BrainCircuit className="w-6 h-6" />
+                  AI Forensic Report
+                </h3>
+                <div className="markdown-body">
+                  <Markdown>{analysisReport}</Markdown>
+                </div>
+              </motion.div>
+            )}
 
             {/* Timeline View */}
             <div className="glass-panel rounded-2xl p-6">

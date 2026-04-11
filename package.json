@@ -8,6 +8,8 @@
     "build": "vite build",
     "start": "tsx server.ts",
     "generator": "tsx src/logs/generator.ts",
+    "test-pip": "tsx src/test_pip.ts",
+    "test-chat": "tsx src/test_chat.ts",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit"
   },

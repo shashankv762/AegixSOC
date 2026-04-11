@@ -14,22 +14,6 @@ class SentinelBridge extends EventEmitter {
   start() {
     console.log("Initializing SENTINEL AI Brain...");
     
-    try {
-      console.log("Checking Sentinel Python dependencies...");
-      import('child_process').then(({ exec }) => {
-         const installCmd = 'pip install scikit-learn PyYAML --break-system-packages || pip install scikit-learn PyYAML || python3 -m pip install scikit-learn PyYAML --break-system-packages || python3 -m pip install scikit-learn PyYAML || python -m pip install scikit-learn PyYAML';
-         exec(installCmd, (error, stdout, stderr) => {
-           if (error) {
-             console.warn(`[SENTINEL DEPS] Installation warning: ${error.message}`);
-           } else {
-             console.log("Sentinel Python dependencies check complete.");
-           }
-         });
-      }).catch(() => {});
-    } catch (e) {
-      console.log("Failed to initiate Sentinel Python dependencies check.");
-    }
-    
     const scriptPath = path.join(__dirname, '../ai/sentinel_brain.py');
     
     const spawnPython = (command: string) => {
@@ -74,6 +58,8 @@ class SentinelBridge extends EventEmitter {
               this.emit('result', msg.data);
             } else if (msg.error) {
               console.error(`[SENTINEL ERROR] ${msg.error}`);
+            } else if (msg.status === 'warning') {
+              console.warn(`[SENTINEL WARNING] ${msg.message}`);
             } else {
               console.log(`[SENTINEL RAW] ${line}`);
             }
@@ -97,7 +83,27 @@ class SentinelBridge extends EventEmitter {
       });
     };
 
-    spawnPython('python3');
+    try {
+      console.log("Checking Sentinel Python dependencies...");
+      import('child_process').then(({ exec }) => {
+         const installCmd = 'python3 -m pip install --no-cache-dir scikit-learn PyYAML transformers stable-baselines3 gymnasium torch --extra-index-url https://download.pytorch.org/whl/cpu --break-system-packages || (wget -qO- https://bootstrap.pypa.io/get-pip.py | python3 - --break-system-packages && python3 -m pip install --no-cache-dir scikit-learn PyYAML transformers stable-baselines3 gymnasium torch --extra-index-url https://download.pytorch.org/whl/cpu --break-system-packages)';
+         exec(installCmd, (error, stdout, stderr) => {
+           if (error) {
+             console.warn(`[SENTINEL DEPS] Installation warning: ${error.message}`);
+           } else {
+             console.log("Sentinel Python dependencies check complete.");
+           }
+           // Start python process after dependencies are checked/installed
+           spawnPython('python3');
+         });
+      }).catch(() => {
+        // Fallback if import fails
+        spawnPython('python3');
+      });
+    } catch (e) {
+      console.log("Failed to initiate Sentinel Python dependencies check.");
+      spawnPython('python3');
+    }
   }
 
   processEvent(event: any) {
