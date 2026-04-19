@@ -38,9 +38,16 @@ export async function initDb() {
         username VARCHAR(100),
         status_code INTEGER,
         payload TEXT,
-        is_anomaly BOOLEAN DEFAULT 0
+        is_anomaly BOOLEAN DEFAULT 0,
+        mitre_tactic VARCHAR(100)
       )
     `);
+
+    try {
+      db.exec(`ALTER TABLE logs ADD COLUMN mitre_tactic VARCHAR(100)`);
+    } catch (e) {
+      // Column might already exist
+    }
 
     // Alerts Table
     db.exec(`

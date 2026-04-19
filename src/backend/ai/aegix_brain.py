@@ -325,7 +325,7 @@ class RLDecisionAgent:
                 self.replay_buffer = [] # Flush it to prevent recursive crash
 
 from response_engine import ResponseEngine, LayerHardener
-from detection_engine import SigmaEngine, AnomalyDetector, MITREMapper, YaraScanner, KillChainCorrelator, ThreatIntelClient
+from detection_engine import SigmaEngine, AnomalyDetector, MITREMapper, YaraScanner, KillChainCorrelator, ThreatIntelClient, AdvancedDatasetAnalyzer, UserEntityBehaviorAnalytics
 
 class AttackMemory:
     def __init__(self, persist_directory="./chroma_db"):
@@ -397,7 +397,7 @@ class AttackMemory:
     def get_response_playbook(self, incident_id: str) -> str:
         return f"Auto-response playbook for {incident_id}: Block IP at firewall, Isolate Host, Clear Temp Files."
 
-class SentinelState(dict):
+class AegixState(dict):
     pass
 
 class AttackerProfiler:
@@ -493,7 +493,7 @@ class MalwareAnalyzer:
             "detected_indicators": detected_apis
         }
 
-class SentinelAgent:
+class AegixAgent:
     def __init__(self):
         self.memory = AttackMemory()
         self.deep_learner = DeepLearningMemory()
@@ -523,6 +523,8 @@ class SentinelAgent:
         self.yara = YaraScanner()
         self.correlator = KillChainCorrelator()
         self.threat_intel = ThreatIntelClient()
+        self.dataset_analyzer = AdvancedDatasetAnalyzer()
+        self.ueba = UserEntityBehaviorAnalytics()
         
         if HAS_LANGGRAPH:
             self.graph = self._build_graph()
@@ -530,7 +532,7 @@ class SentinelAgent:
             self.graph = None
 
     def _build_graph(self):
-        workflow = StateGraph(SentinelState)
+        workflow = StateGraph(AegixState)
         
         workflow.add_node("analyze", self.analyze)
         workflow.add_node("memory_lookup", self.memory_lookup)
@@ -547,7 +549,7 @@ class SentinelAgent:
         
         return workflow.compile()
 
-    def analyze(self, state: SentinelState):
+    def analyze(self, state: AegixState):
         event = state.get("event", {})
         
         # Threat Intel Lookup
@@ -567,7 +569,15 @@ class SentinelAgent:
         anomaly_result = self.anomaly.process(event)
         mitre_tactic = self.mitre.classify(event)
         kill_chain = self.correlator.add_event(event)
+
+        # Advanced Academic Datasets & UEBA
+        dataset_result = self.dataset_analyzer.analyze_flow(event)
+        ueba_score = self.ueba.evaluate(event)
         
+        if ueba_score > 0.5:
+            event["is_anomaly"] = True
+            event["severity"] = "High" if event.get("severity") != "Critical" else "Critical"
+
         # Yara scan if file path provided
         yara_matches = []
         if "file_path" in event:
@@ -575,6 +585,11 @@ class SentinelAgent:
             
         # Malware Analysis Pipeline (Static + Dynamic)
         malware_result = self.malware_analyzer.analyze(event)
+
+        # Escalate Severity for critical matches
+        if kill_chain.get("confidence") == "Critical" or any("evil.exe" in match.lower() for match in sigma_matches):
+            event["severity"] = "Critical"
+            event["is_anomaly"] = True
             
         # Psych / Crazy Features
         similar_for_profiling = self.memory.find_similar(event, threshold=0.5)
@@ -584,6 +599,13 @@ class SentinelAgent:
         analysis_text = f"Analyzed event {event.get('event_type', 'unknown')} from {event.get('source_ip', 'unknown')}. "
         if ti_result and ti_result.get("malicious"):
             analysis_text += f"Threat Intel Hit: Known malicious IP ({ti_result.get('source')}). "
+        
+        if dataset_result.get("dataset_match"):
+            analysis_text += f"Dataset Mapping ({dataset_result.get('confidence')}%): {dataset_result.get('dataset_match')}. "
+            
+        if ueba_score > 0.0:
+            analysis_text += f"UEBA Score: {ueba_score:.2f}. "
+
         if sigma_matches:
             analysis_text += f"Sigma Matches: {', '.join(sigma_matches)}. "
         if anomaly_result.get("is_anomaly"):
@@ -626,7 +648,7 @@ class SentinelAgent:
                 
         return state
 
-    def memory_lookup(self, state: SentinelState):
+    def memory_lookup(self, state: AegixState):
         event = state.get("event", {})
         # Self-hardening: threshold auto-adjusts based on memory size
         current_threshold = max(0.60, self.base_threshold - (len(self.memory.memory) * 0.01))
@@ -643,7 +665,7 @@ class SentinelAgent:
             state["similarity_score"] = 0.0
         return state
 
-    def decide_action(self, state: SentinelState):
+    def decide_action(self, state: AegixState):
         event = state.get("event", {})
         dl_threat_score = state.get("dl_threat_score", 0.0)
         malware_analysis = state.get("malware_analysis", {})
@@ -663,7 +685,7 @@ class SentinelAgent:
             if state.get("action") == "LLM_DECISION" or rl_decision == "LLM_DECISION":
                 if self.llm:
                     try:
-                        system_instruction = "You are SENTINEL, a highly advanced, fully autonomous SOC AI. Your goal is to critically analyze security events and decide the best protective response action. The available actions you can choose from are ONLY: [IGNORE, BLOCK_IP, ISOLATE_ENDPOINT, DEPLOY_HONEYPOT, DEPLOY_HONEY_CREDENTIALS]. You MUST analyze the payload, threat score, anomaly classification, and attacker profile. If behavior looks like a scanner or lateral movement, prefer a honeypot. If it looks like privilege escalation or credential dumping, prefer honey credentials. Reply with ONLY a JSON object containing 'action' and 'reasoning'."
+                        system_instruction = "You are AEGIX, a highly advanced, fully autonomous SOC AI. Your goal is to critically analyze security events and decide the best protective response action. The available actions you can choose from are ONLY: [IGNORE, BLOCK_IP, ISOLATE_ENDPOINT, DEPLOY_HONEYPOT, DEPLOY_HONEY_CREDENTIALS]. You MUST analyze the payload, threat score, anomaly classification, and attacker profile. If behavior looks like a scanner or lateral movement, prefer a honeypot. If it looks like privilege escalation or credential dumping, prefer honey credentials. Reply with ONLY a JSON object containing 'action' and 'reasoning'."
                         
                         prompt = json.dumps({
                             "event_data": event,
@@ -698,7 +720,7 @@ class SentinelAgent:
                     
         return state
 
-    def execute(self, state: SentinelState):
+    def execute(self, state: AegixState):
         action = state.get("action")
         event = state.get("event", {})
         
@@ -792,7 +814,7 @@ Reasoning: {state.get('reasoning', state.get('playbook', ''))}
             
         return state
 
-    def store_memory(self, state: SentinelState):
+    def store_memory(self, state: AegixState):
         event = state.get("event", {})
         incident_id = self.memory.add_incident(event)
         
@@ -818,7 +840,7 @@ Reasoning: {state.get('reasoning', state.get('playbook', ''))}
             return self._fallback_process(event)
             
     def _fallback_process(self, event: Dict[str, Any]):
-        state = SentinelState({"event": event})
+        state = AegixState({"event": event})
         state = self.analyze(state)
         state = self.memory_lookup(state)
         state = self.decide_action(state)
@@ -827,8 +849,8 @@ Reasoning: {state.get('reasoning', state.get('playbook', ''))}
         return state
 
 if __name__ == "__main__":
-    print(json.dumps({"status": "ready", "message": "SENTINEL AI Brain initialized."}), flush=True)
-    agent = SentinelAgent()
+    print(json.dumps({"status": "ready", "message": "AEGIX AI Brain initialized."}), flush=True)
+    agent = AegixAgent()
     
     for line in sys.stdin:
         line = line.strip()

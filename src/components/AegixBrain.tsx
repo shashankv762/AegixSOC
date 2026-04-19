@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { usePolling } from '../hooks/usePolling';
 import { api } from '../api/client';
-import { Brain, ShieldAlert, Cpu, Activity, CheckCircle2, AlertTriangle, Zap, FileText, X, Skull, Volume2, VolumeX, Globe, Database, Server } from 'lucide-react';
+import { Brain, ShieldAlert, Cpu, Activity, CheckCircle2, AlertTriangle, Zap, FileText, X, Skull, Volume2, VolumeX, Globe, Database, Server, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 import DefenceInDepth from './DefenceInDepth';
@@ -10,8 +10,8 @@ import CampaignNamer from './CampaignNamer';
 import ReplayTimeline from './ReplayTimeline';
 import MalwareAnalyzer from './MalwareAnalyzer';
 
-export default function SentinelBrain() {
-  const { data: history } = usePolling(() => api.getSentinelHistory(), 2000);
+export default function AegixBrain() {
+  const { data: history } = usePolling(() => api.getAegixHistory(), 2000);
   const [selectedReport, setSelectedReport] = React.useState<string | null>(null);
   const [isHackerMode, setIsHackerMode] = React.useState(false);
   const [isVoiceEnabled, setIsVoiceEnabled] = React.useState(false);
@@ -19,7 +19,7 @@ export default function SentinelBrain() {
   
   const events = Array.isArray(history) ? history : [];
 
-  // Sentinel Voice: TTS for critical alerts
+  // Aegix Voice: TTS for critical alerts
   useEffect(() => {
     if (!isVoiceEnabled || events.length === 0) return;
     const latest = events[0];
@@ -38,7 +38,7 @@ export default function SentinelBrain() {
         <div>
           <h2 className="text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-soc-purple to-soc-cyan flex items-center gap-3">
             <Brain className="w-8 h-8 text-soc-purple" />
-            SENTINEL AI Brain
+            AEGIX AI Brain
           </h2>
           <p className="text-soc-muted mt-1 font-mono text-sm">Episodic Threat Memory & Layered Self-Hardening</p>
         </div>
@@ -46,7 +46,7 @@ export default function SentinelBrain() {
           <button 
             onClick={() => setIsVoiceEnabled(!isVoiceEnabled)}
             className={`p-2 rounded-lg border transition-all ${isVoiceEnabled ? 'bg-soc-purple/20 border-soc-purple text-soc-purple' : 'bg-soc-bg border-soc-border text-soc-muted'}`}
-            title="Toggle Sentinel Voice"
+            title="Toggle Aegix Voice"
           >
             {isVoiceEnabled ? <Volume2 className="w-5 h-5" /> : <VolumeX className="w-5 h-5" />}
           </button>
@@ -124,7 +124,7 @@ export default function SentinelBrain() {
                 <button
                   onClick={async () => {
                     import('react-hot-toast').then(m => m.default.promise(
-                      api.sendSentinelCommand('FORCE_RETRAIN'),
+                      api.sendAegixCommand('FORCE_RETRAIN'),
                       { loading: "Forcing RL model retrain...", success: "Retraining initiated", error: "Failed to retrain" }
                     ));
                   }}
@@ -137,7 +137,7 @@ export default function SentinelBrain() {
                   onClick={async () => {
                     if (window.confirm("Are you sure you want to completely erase the Episodic Vector Memory? The AI will forget past campaigns.")) {
                       import('react-hot-toast').then(m => m.default.promise(
-                        api.sendSentinelCommand('CLEAR_MEMORY'),
+                        api.sendAegixCommand('CLEAR_MEMORY'),
                         { loading: "Clearing memory bank...", success: "Episodic memory cleared", error: "Failed to clear memory" }
                       ));
                     }
@@ -151,7 +151,7 @@ export default function SentinelBrain() {
                   onClick={async () => {
                     if (window.confirm("WARNING: This resets both the Deep Learning MLP and RL Agent to default baseline states. Proceed?")) {
                       import('react-hot-toast').then(m => m.default.promise(
-                        api.sendSentinelCommand('RESET_MODELS'),
+                        api.sendAegixCommand('RESET_MODELS'),
                         { loading: "Resetting AI models...", success: "AI models reverted to baseline", error: "Failed to reset models" }
                       ));
                     }
@@ -174,7 +174,7 @@ export default function SentinelBrain() {
                 <button
                   onClick={async () => {
                     import('react-hot-toast').then(m => m.default.promise(
-                      api.sendSentinelCommand('DEPLOY_HONEYPOT'),
+                      api.sendAegixCommand('DEPLOY_HONEYPOT'),
                       { loading: "Deploying generic honeypot service...", success: "Honeypot deployed to catch scanners", error: "Failed to deploy honeypot" }
                     ));
                   }}
@@ -186,7 +186,7 @@ export default function SentinelBrain() {
                 <button
                   onClick={async () => {
                     import('react-hot-toast').then(m => m.default.promise(
-                      api.sendSentinelCommand('DEPLOY_HONEY_CREDENTIALS'),
+                      api.sendAegixCommand('DEPLOY_HONEY_CREDENTIALS'),
                       { loading: "Injecting memory traps...", success: "Honey credentials deployed", error: "Failed to deploy credentials" }
                     ));
                   }}
@@ -214,6 +214,20 @@ export default function SentinelBrain() {
                   {events.filter((e: any) => e.auto_respond).length}
                 </div>
                 <div className="text-[10px] text-soc-muted uppercase tracking-widest mt-1">Auto-Remediated</div>
+              </div>
+              <div className="p-4 rounded-lg bg-black/40 border border-white/5 text-center col-span-2 flex justify-between items-center px-6">
+                 <div>
+                    <div className="text-[10px] text-soc-muted uppercase tracking-widest text-left">Advanced Datasets</div>
+                    <div className="text-sm font-bold text-soc-text font-syne text-left">CIC-IDS2017 & UNSW-NB15</div>
+                 </div>
+                 <Database className="w-5 h-5 text-soc-green"/>
+              </div>
+              <div className="p-4 rounded-lg bg-black/40 border border-white/5 text-center col-span-2 flex justify-between items-center px-6">
+                 <div>
+                    <div className="text-[10px] text-soc-muted uppercase tracking-widest text-left">UEBA Engine</div>
+                    <div className="text-sm font-bold text-soc-text font-syne text-left">User & Entity Profiles Active</div>
+                 </div>
+                 <User className="w-5 h-5 text-soc-cyan"/>
               </div>
             </div>
           </div>
@@ -299,6 +313,15 @@ export default function SentinelBrain() {
                               <div className="text-[10px] text-soc-muted uppercase tracking-widest mb-1">Execution</div>
                               <div className="text-xs text-soc-text font-mono">
                                 {event.execution_result}
+                              </div>
+                            </div>
+                          )}
+
+                          {event.hardening_action && (
+                            <div className="bg-soc-purple/10 p-3 rounded-lg border border-soc-purple/30">
+                              <div className="text-[10px] text-soc-purple uppercase tracking-widest mb-1 font-bold">Autonomic Hardening Triggered</div>
+                              <div className="text-xs text-soc-text font-mono">
+                                 {event.hardening_action.message}
                               </div>
                             </div>
                           )}

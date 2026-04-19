@@ -12,6 +12,7 @@ import systemRoutes from "./src/backend/routes/system.js";
 import usersRoutes from "./src/backend/routes/users.js";
 import ipsRoutes from "./src/backend/routes/ips.js";
 import phase1Routes from "./src/backend/routes/phase1.js";
+import edrRoutes from "./src/backend/routes/edr.js";
 import { apiLimiter } from "./src/backend/middleware/rateLimit.js";
 import { ipsMiddleware } from "./src/backend/middleware/ips.js";
 import { ipsService } from "./src/backend/services/ips_service.js";
@@ -19,7 +20,7 @@ import { logService } from "./src/backend/services/log_service.js";
 import { alertService } from "./src/backend/services/alert_service.js";
 import { realSystemMonitor } from "./src/backend/services/real_system_monitor.js";
 import { sensorBridge } from "./src/backend/services/sensor_bridge.js";
-import { sentinelBridge } from "./src/backend/services/sentinel_bridge.js";
+import { aegixBridge } from "./src/backend/services/aegix_bridge.js";
 import { sseService } from "./src/backend/services/sse_service.js";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -55,9 +56,10 @@ async function startServer() {
   app.use("/api/users", usersRoutes);
   app.use("/api/ips", ipsRoutes);
   app.use("/api/phase1", phase1Routes);
+  app.use("/api/edr", edrRoutes);
 
   app.get("/api/sentinel/history", (req, res) => {
-    res.json(sentinelBridge.getHistory());
+    res.json(aegixBridge.getHistory());
   });
 
   app.post("/api/sentinel/command", (req, res) => {
@@ -67,19 +69,19 @@ async function startServer() {
     }
     
     // Check if Python process is ready
-    if (!sentinelBridge.isReady) {
-      return res.status(500).json({ error: "Sentinel Brain is not ready" });
+    if (!aegixBridge.isReady) {
+      return res.status(500).json({ error: "Aegix Brain is not ready" });
     }
     
     // Inject the command as a special event
-    sentinelBridge.processEvent({
+    aegixBridge.processEvent({
       event_type: "SYSTEM_COMMAND",
       command: action,
       source_ip: "127.0.0.1",
       timestamp: new Date().toISOString()
     });
     
-    res.json({ status: "ok", message: `Command '${action}' sent to Sentinel Brain` });
+    res.json({ status: "ok", message: `Command '${action}' sent to Aegix Brain` });
   });
 
   app.get("/api/health", (req, res) => {
@@ -123,8 +125,8 @@ async function startServer() {
     // Start Python Sensor Daemon bridge
     sensorBridge.start();
     
-    // Start Sentinel AI Brain bridge
-    sentinelBridge.start();
+    // Start Aegix AI Brain bridge
+    aegixBridge.start();
 
     // Start background jobs interval (every minute)
     setInterval(() => {

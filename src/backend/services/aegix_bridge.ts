@@ -6,15 +6,15 @@ import { EventEmitter } from 'events';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-class SentinelBridge extends EventEmitter {
+class AegixBridge extends EventEmitter {
   private pythonProcess: ChildProcess | null = null;
   public isReady = false;
   private history: any[] = [];
 
   start() {
-    console.log("Initializing SENTINEL AI Brain...");
+    console.log("Initializing AEGIX AI Brain...");
     
-    const scriptPath = path.join(__dirname, '../ai/sentinel_brain.py');
+    const scriptPath = path.join(__dirname, '../ai/aegix_brain.py');
     
     const spawnPython = (command: string) => {
       this.pythonProcess = spawn(command, [scriptPath], {
@@ -30,10 +30,10 @@ class SentinelBridge extends EventEmitter {
             console.log("python3 not found, trying python...");
             spawnPython('python');
           } else {
-            console.error("Neither python3 nor python found. SENTINEL AI Brain will not start.");
+            console.error("Neither python3 nor python found. AEGIX AI Brain will not start.");
           }
         } else {
-          console.error(`Failed to start SENTINEL AI Brain: ${err.message}`);
+          console.error(`Failed to start AEGIX AI Brain: ${err.message}`);
         }
       });
 
@@ -51,7 +51,7 @@ class SentinelBridge extends EventEmitter {
             const msg = JSON.parse(line);
             if (msg.status === 'ready') {
               this.isReady = true;
-              console.log(`[SENTINEL] ${msg.message}`);
+              console.log(`[AEGIX] ${msg.message}`);
             } else if (msg.type === 'sentinel_result') {
               this.history.unshift({
                 timestamp: new Date().toISOString(),
@@ -65,13 +65,36 @@ class SentinelBridge extends EventEmitter {
               const executions = msg.data.execution_details || [];
               const eventSeverity = msg.data.event?.severity;
               const tiResult = msg.data.ti_result;
+              const sourceIp = msg.data.event?.source_ip;
+              const logId = msg.data.event?.id || msg.data.event?.log_id;
+              
+              if (logId && msg.data.mitre_tactic) {
+                  import('../database.js').then(({ db }) => {
+                      db.prepare("UPDATE logs SET mitre_tactic = ? WHERE id = ?").run(msg.data.mitre_tactic, logId);
+                  }).catch(e => console.error("Failed to update mitre tactic", e));
+              }
+              
+              // Auto-block based on Threat Intel
+              if (tiResult?.malicious && sourceIp) {
+                  import('./ips_service.js').then(({ ipsService }) => {
+                      const blockReason = `[Auto-TI Block] Flagged as malicious by OSINT feed (${tiResult.source}).`;
+                      ipsService.blockIp(sourceIp, blockReason, 24); // Default 24 hour block
+                      console.log(`[THREAT INTEL] Auto-blocked malicious IP: ${sourceIp}`);
+                  }).catch(e => console.error("Failed to dynamically import ipsService:", e));
+              }
               
               if (eventSeverity === 'Critical') {
                   import('./alert_service.js').then(({ alertService }) => {
-                     // Fire automatic high severity alert since Sentinel Python identified it
-                     const reason = tiResult?.malicious 
-                        ? `[Threat Intel Hit] ${tiResult.source} flags IP as highly malicious. ${msg.data.reasoning || ''}`
-                        : `[Sentinel Brain Critical] AI evaluated multi-layered threat path over threshold. ${msg.data.reasoning || ''}`;
+                     // Fire automatic high severity alert since Aegix Python identified it
+                     let reason = `[Aegix Brain Critical] AI evaluated multi-layered threat path over threshold. ${msg.data.reasoning || ''}`;
+                     
+                     if (tiResult?.malicious) {
+                         reason = `[Threat Intel Hit] ${tiResult.source} flags IP as highly malicious. ${msg.data.reasoning || ''}`;
+                     } else if (msg.data.kill_chain?.confidence === 'Critical') {
+                         reason = `[Kill-Chain Detected] ${msg.data.kill_chain.message}`;
+                     } else if (msg.data.analysis && msg.data.analysis.includes("evil.exe")) {
+                         reason = `[Sigma Rule Trigger] Critical process interaction (evil.exe) detected.`;
+                     }
                         
                      alertService.createAlert({
                         log_id: msg.data.event?.id || Math.floor(Math.random() * 1000000),
@@ -85,7 +108,7 @@ class SentinelBridge extends EventEmitter {
 
               if (action && action !== "MANUAL_REVIEW" && action !== "IGNORE" && action !== "LLM_DECISION") {
                 const sourceIp = msg.data.event?.source_ip;
-                const reasoning = msg.data.reasoning || "Autonomous Sentinel RL Response";
+                const reasoning = msg.data.reasoning || "Autonomous Aegix RL Response";
                 
                 // Handle Deceptions
                 if (action.includes("HONEYPOT") || action.includes("CREDENTIALS")) {
@@ -95,9 +118,9 @@ class SentinelBridge extends EventEmitter {
                           severity: "High",
                           reason: `[Deception Deployed] ${action}`,
                           score: 0.85,
-                          mitigations: `Sentinel Brain automatically deployed deception layer tripwires based on heuristics. Engine Reasoning: ${reasoning}`
+                          mitigations: `Aegix Brain automatically deployed deception layer tripwires based on heuristics. Engine Reasoning: ${reasoning}`
                        });
-                       console.log(`[SENTINEL AUTO-RESPONSE] ${action} dynamically deployed.`);
+                       console.log(`[AEGIX AUTO-RESPONSE] ${action} dynamically deployed.`);
                     });
                 }
                 
@@ -105,36 +128,50 @@ class SentinelBridge extends EventEmitter {
                   import('./ips_service.js').then(({ ipsService }) => {
                     if (action === "BLOCK_IP") {
                       ipsService.blockIp(sourceIp, `[RL Brain] ${reasoning}`, 1); // 1 hr block
-                      console.log(`[SENTINEL AUTO-RESPONSE] Blocked IP: ${sourceIp}`);
+                      console.log(`[AEGIX AUTO-RESPONSE] Blocked IP: ${sourceIp}`);
                     } else if (action === "ISOLATE_ENDPOINT") {
                       ipsService.blockIp(sourceIp, `[RL Brain] Endpoint Isolation: ${reasoning}`, 24); // 24 hr block
-                      console.log(`[SENTINEL AUTO-RESPONSE] Isolated Endpoint IP: ${sourceIp}`);
+                      console.log(`[AEGIX AUTO-RESPONSE] Isolated Endpoint IP: ${sourceIp}`);
                     }
                   }).catch(e => console.error("Failed to dynamically import ipsService:", e));
                 }
               }
+              
+              // Handle autonomous Sigma rule generation (Layer Hardening)
+              if (msg.data.hardening_action) {
+                  import('./alert_service.js').then(({ alertService }) => {
+                     alertService.createAlert({
+                        log_id: msg.data.event?.id || Math.floor(Math.random() * 1000000),
+                        severity: "High",
+                        reason: `[Auto-Hardening] System generated autonomous detection rule.`,
+                        score: 0.90,
+                        mitigations: `Aegix detected repeated IPS misses and generated new Sigma Rules. Details: ${msg.data.hardening_action.message}`
+                     });
+                     console.log(`[AEGIX AUTO-HARDENING] Dynamic Sigma rules configured.`);
+                  });
+              }
 
               this.emit('result', msg.data);
             } else if (msg.error) {
-              console.error(`[SENTINEL ERROR] ${msg.error}`);
+              console.error(`[AEGIX ERROR] ${msg.error}`);
             } else if (msg.status === 'warning') {
-              console.warn(`[SENTINEL WARNING] ${msg.message}`);
+              console.warn(`[AEGIX WARNING] ${msg.message}`);
             } else {
-              console.log(`[SENTINEL RAW] ${line}`);
+              console.log(`[AEGIX RAW] ${line}`);
             }
           } catch (e) {
-            console.log(`[SENTINEL OUTPUT] ${line}`);
+            console.log(`[AEGIX OUTPUT] ${line}`);
           }
         }
       });
 
       this.pythonProcess.stderr?.on('data', (data) => {
-        console.error(`[SENTINEL STDERR] ${data.toString()}`);
+        console.error(`[AEGIX STDERR] ${data.toString()}`);
       });
 
       this.pythonProcess.on('close', (code) => {
         if (code !== null) {
-          console.log(`SENTINEL AI Brain exited with code ${code}`);
+          console.log(`AEGIX AI Brain exited with code ${code}`);
           this.isReady = false;
           // Restart after 5 seconds
           setTimeout(() => this.start(), 5000);
@@ -143,14 +180,14 @@ class SentinelBridge extends EventEmitter {
     };
 
     try {
-      console.log("Checking Sentinel Python dependencies...");
+      console.log("Checking Aegix Python dependencies...");
       import('child_process').then(({ exec }) => {
          const installCmd = 'python3 -m pip install --no-cache-dir scikit-learn PyYAML transformers stable-baselines3 gymnasium torch google-genai --extra-index-url https://download.pytorch.org/whl/cpu --break-system-packages || (wget -qO- https://bootstrap.pypa.io/get-pip.py | python3 - --break-system-packages && python3 -m pip install --no-cache-dir scikit-learn PyYAML transformers stable-baselines3 gymnasium torch google-genai --extra-index-url https://download.pytorch.org/whl/cpu --break-system-packages)';
          exec(installCmd, (error, stdout, stderr) => {
            if (error) {
-             console.warn(`[SENTINEL DEPS] Installation warning: ${error.message}`);
+             console.warn(`[AEGIX DEPS] Installation warning: ${error.message}`);
            } else {
-             console.log("Sentinel Python dependencies check complete.");
+             console.log("Aegix Python dependencies check complete.");
            }
            // Start python process after dependencies are checked/installed
            spawnPython('python3');
@@ -160,14 +197,14 @@ class SentinelBridge extends EventEmitter {
         spawnPython('python3');
       });
     } catch (e) {
-      console.log("Failed to initiate Sentinel Python dependencies check.");
+      console.log("Failed to initiate Aegix Python dependencies check.");
       spawnPython('python3');
     }
   }
 
   processEvent(event: any) {
     if (!this.isReady || !this.pythonProcess) {
-      console.warn("SENTINEL is not ready to process events.");
+      console.warn("AEGIX is not ready to process events.");
       return;
     }
     this.pythonProcess.stdin?.write(JSON.stringify(event) + '\n');
@@ -178,4 +215,4 @@ class SentinelBridge extends EventEmitter {
   }
 }
 
-export const sentinelBridge = new SentinelBridge();
+export const aegixBridge = new AegixBridge();

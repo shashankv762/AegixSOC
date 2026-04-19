@@ -74,7 +74,12 @@ export const api = {
   getPhase1Layers: () => client.get('/phase1/layers'),
   getPhase1Memory: () => client.get('/phase1/memory'),
 
-  // Sentinel AI Brain
-  getSentinelHistory: () => client.get('/sentinel/history'),
-  sendSentinelCommand: (action: string) => client.post('/sentinel/command', { action }).then(res => res.data)
+  // EDR Endpoints
+  getEDRVulnerabilities: () => client.get('/edr/vulnerabilities'),
+  getEDRQuarantines: () => client.get('/edr/quarantines'),
+  runEDRScan: () => client.post('/edr/scan'),
+
+  // Aegix AI Brain
+  getAegixHistory: () => client.get('/sentinel/history'),
+  sendAegixCommand: (action: string) => client.post('/sentinel/command', { action }).then(res => res.data)
 };

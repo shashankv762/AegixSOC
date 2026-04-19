@@ -1,5 +1,5 @@
 import { db } from "../database.js";
-import { sentinelBridge } from "./sentinel_bridge.js";
+import { aegixBridge } from "./aegix_bridge.js";
 import { sseService } from "./sse_service.js";
 
 export const settingsService = {
@@ -49,9 +49,9 @@ export const alertService = {
       JSON.stringify(alert.mitigations)
     );
     
-    // Feed to Sentinel AI Brain
+    // Feed to Aegix AI Brain
     try {
-      sentinelBridge.processEvent({
+      aegixBridge.processEvent({
         id: info.lastInsertRowid,
         event_type: 'alert',
         severity: alert.severity,
@@ -60,7 +60,7 @@ export const alertService = {
         log_id: alert.log_id
       });
     } catch (e) {
-      console.error("Failed to send alert to Sentinel:", e);
+      console.error("Failed to send alert to Aegix:", e);
     }
     
     // Broadcast via SSE

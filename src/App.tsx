@@ -11,7 +11,8 @@ import NetworkPanel from './components/NetworkPanel';
 import ForensicsPanel from './components/ForensicsPanel';
 import UserManagement from './components/UserManagement';
 import IPSManagement from './components/IPSManagement';
-import SentinelBrain from './components/SentinelBrain';
+import AegixBrain from './components/AegixBrain';
+import EndpointEDR from './components/EndpointEDR';
 import { RefreshCw, MessageSquare, X } from 'lucide-react';
 import { api } from './api/client';
 import { motion, AnimatePresence } from 'motion/react';
@@ -192,8 +193,10 @@ export default function App() {
     switch (activeTab) {
       case 'dashboard':
         return <Dashboard onSelectLog={setSelectedIncident} onInvestigate={handleInvestigate} />;
-      case 'sentinel':
-        return <SentinelBrain />;
+      case 'aegix':
+        return <AegixBrain />;
+      case 'edr':
+        return <EndpointEDR />;
       case 'processes':
         return (
           <div className="space-y-6">

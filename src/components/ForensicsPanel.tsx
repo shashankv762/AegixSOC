@@ -216,12 +216,14 @@ export default function ForensicsPanel() {
                             }`}>
                               {log.event_type.replace(/_/g, ' ')}
                             </span>
-                            {/* MITRE ATT&CK Approximation based on anomaly/payload heuristics */}
-                            {log.is_anomaly && (
+                            {/* MITRE ATT&CK Framework Mapping */}
+                            {(log.mitre_tactic || log.is_anomaly) && (
                                 <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-soc-purple/20 text-soc-purple border border-soc-purple/30">
-                                  {log.event_type.includes('login') ? 'T1110 - Brute Force' : 
-                                   log.event_type.includes('sql') ? 'T1190 - Exploit App' : 
-                                   'T1082 - Discovery'}
+                                  {log.mitre_tactic ? log.mitre_tactic : (
+                                    log.event_type.includes('login') ? 'T1110 - Brute Force' : 
+                                    log.event_type.includes('sql') ? 'T1190 - Exploit App' : 
+                                    'T1082 - Discovery'
+                                  )}
                                 </span>
                             )}
                             {/* Threat Intel Hit Approximation based on tags embedded by analyzer */}
