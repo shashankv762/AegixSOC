@@ -77,7 +77,11 @@ export const api = {
   // EDR Endpoints
   getEDRVulnerabilities: () => client.get('/edr/vulnerabilities'),
   getEDRQuarantines: () => client.get('/edr/quarantines'),
-  runEDRScan: () => client.post('/edr/scan'),
+  runEDRScan: () => client.post('/edr/scan', {}, { timeout: 60000 }),
+  scanTargetFile: (targetPath: string) => client.post('/edr/scan-file', { targetPath }),
+  remediateVulnerability: (packageName: string, range: string) => client.post('/edr/remediate', { packageName, range }, { timeout: 60000 }),
+  remediateAllCriticalHigh: () => client.post('/edr/remediate-critical', {}, { timeout: 300000 }),
+  getEDRReports: () => client.get('/edr/reports'),
 
   // Aegix AI Brain
   getAegixHistory: () => client.get('/sentinel/history'),

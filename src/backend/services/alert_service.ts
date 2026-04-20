@@ -36,7 +36,7 @@ export const settingsService = {
 };
 
 export const alertService = {
-  createAlert: (alert: any) => {
+  createAlert: (alert: any, skipAegix: boolean = false) => {
     const stmt = db.prepare(`
       INSERT INTO alerts (log_id, severity, reason, score, mitigations, acknowledged)
       VALUES (?, ?, ?, ?, ?, 0)
@@ -49,18 +49,20 @@ export const alertService = {
       JSON.stringify(alert.mitigations)
     );
     
-    // Feed to Aegix AI Brain
-    try {
-      aegixBridge.processEvent({
-        id: info.lastInsertRowid,
-        event_type: 'alert',
-        severity: alert.severity,
-        reason: alert.reason,
-        score: alert.score,
-        log_id: alert.log_id
-      });
-    } catch (e) {
-      console.error("Failed to send alert to Aegix:", e);
+    // Feed to Aegix AI Brain only if not skipped
+    if (!skipAegix) {
+      try {
+        aegixBridge.processEvent({
+          id: info.lastInsertRowid,
+          event_type: 'alert',
+          severity: alert.severity,
+          reason: alert.reason,
+          score: alert.score,
+          log_id: alert.log_id
+        });
+      } catch (e) {
+        console.error("Failed to send alert to Aegix:", e);
+      }
     }
     
     // Broadcast via SSE

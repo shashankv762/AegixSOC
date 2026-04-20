@@ -4,10 +4,11 @@ import { ipsService } from "./ips_service.js";
 import { featureExtractor } from "../../ai/feature_extractor.js";
 import { anomalyDetector } from "../../ai/anomaly_detector.js";
 import { explainer } from "../../ai/explainer.js";
+import { aegixBridge } from "./aegix_bridge.js";
 
 export const logService = {
   processAndSaveLog: async (logData: any) => {
-    // 1. Extract features
+    // 1. Extract features (legacy fast-path, kept for basic filtering)
     const features = featureExtractor.extract(logData);
     
     // Fetch thresholds
@@ -15,7 +16,7 @@ export const logService = {
     const anomalyThreshold = settings.anomaly_threshold ?? 0.35;
     const criticalThreshold = settings.critical_threshold ?? 0.85;
 
-    // 2. Predict anomaly
+    // 2. Predict anomaly via fast local inference
     const [isAnomaly, score] = anomalyDetector.predict(features, anomalyThreshold);
     
     // 3. Save log
@@ -24,43 +25,42 @@ export const logService = {
       is_anomaly: isAnomaly
     });
     
+    // 4. Send raw event to the real Aegix Brain Python Agent to orchestrate assessing and actioning
+    try {
+       aegixBridge.processEvent({
+          id: logId,
+          event_type: logData.event_type || 'system_log',
+          source_ip: logData.source_ip,
+          username: logData.username,
+          payload: logData.payload,
+          status_code: logData.status_code,
+          score: score, // provide base heuristic score
+          severity: score > criticalThreshold ? 'Critical' : (isAnomaly ? 'High' : 'Low')
+       });
+    } catch (e) {
+       console.error("Failed to forward log to Aegix Brain:", e);
+    }
+    
     let alertId = null;
     if (isAnomaly) {
-      // 4. Generate explanation and mitigations
+      // 5. Generate explanation and mitigations (basic)
       const reason = explainer.explain(logData, score);
       const mitigations = explainer.suggestMitigations(logData);
       
       // Assign severity
       let severity = "Low";
-      if (score > criticalThreshold) severity = "Critical"; // Changed to use dynamic threshold
+      if (score > criticalThreshold) severity = "Critical"; 
       else if (score > (anomalyThreshold + (criticalThreshold - anomalyThreshold) * 0.2)) severity = "Medium";
       
-      // 5. Create alert
+      // We no longer automatically trigger IPS blocks for EVERY anomaly directly in logService.
+      // We pass the decision to Aegix Brain to execute! We just log the base Alert here.
       alertId = alertService.createAlert({
         log_id: logId,
         severity,
         reason,
         score,
-        mitigations
-      });
-
-      // 6. IPS Action: Automatically block IP if score is critically high
-      if (score > criticalThreshold && logData.source_ip) {
-        const blockReason = `Automated IPS Block: Critical anomaly score (${score.toFixed(2)}) detected. Reason: ${reason}`;
-        // Apply a relatively long block for critical automated blocks by default (e.g., 24 hours)
-        const blocked = ipsService.blockIp(logData.source_ip, blockReason, 24);
-        
-        if (blocked) {
-          // Generate a specific alert for the IPS action
-          alertService.createAlert({
-            log_id: logId,
-            severity: "Critical",
-            reason: `[IPS ACTION TAKEN] IP ${logData.source_ip} has been automatically blocked for 24 hours.`,
-            score: 1.0,
-            mitigations: `Administrator review required. To unblock, navigate to the IPS settings. Original trigger: ${reason}`
-          });
-        }
-      }
+        mitigations: "Evaluating optimal response strategy via Aegix AI Brain..."
+      }, true); // skipAegix: true to prevent duplicate evaluation since log was sent directly
     }
     
     return { log_id: logId, is_anomaly: isAnomaly, alert_id: alertId };

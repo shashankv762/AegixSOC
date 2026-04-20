@@ -102,7 +102,7 @@ class AegixBridge extends EventEmitter {
                         reason: reason,
                         score: msg.data.dl_threat_score || 0.95,
                         mitigations: `Action taken by AI: ${action}`
-                     });
+                     }, true); // skipAegix to prevent infinity loop
                   }).catch(e => console.error("Failed to dynamically import alertService:", e));
               }
 
@@ -119,7 +119,7 @@ class AegixBridge extends EventEmitter {
                           reason: `[Deception Deployed] ${action}`,
                           score: 0.85,
                           mitigations: `Aegix Brain automatically deployed deception layer tripwires based on heuristics. Engine Reasoning: ${reasoning}`
-                       });
+                       }, true); // skipAegix to prevent infinity loop
                        console.log(`[AEGIX AUTO-RESPONSE] ${action} dynamically deployed.`);
                     });
                 }
@@ -146,7 +146,7 @@ class AegixBridge extends EventEmitter {
                         reason: `[Auto-Hardening] System generated autonomous detection rule.`,
                         score: 0.90,
                         mitigations: `Aegix detected repeated IPS misses and generated new Sigma Rules. Details: ${msg.data.hardening_action.message}`
-                     });
+                     }, true);
                      console.log(`[AEGIX AUTO-HARDENING] Dynamic Sigma rules configured.`);
                   });
               }
