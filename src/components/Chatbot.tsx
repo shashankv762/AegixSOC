@@ -30,7 +30,10 @@ export default function Chatbot({ contextData, onClearContext, autoSend, isFloat
       const incidentId = contextData.id || contextData.timestamp || JSON.stringify(contextData);
       if (lastProcessedIncidentId.current !== incidentId) {
         lastProcessedIncidentId.current = incidentId;
-        const prompt = `Please analyze this incident and explain everything about it in detail. Provide all the information about the alert, including what happened, the potential impact, and recommended mitigations.`;
+        let prompt = `Please analyze this incident and explain everything about it in detail. Provide all the information about the alert, including what happened, the potential impact, and recommended mitigations.`;
+        if (contextData?.severity === 'Critical') {
+            prompt += ` Furthermore, this is a CRITICAL alert. Please search the system's threat memory and chat history for completely similar past incidents, and provide a detailed comparative analysis indicating if this is part of a larger ongoing campaign or recurrent threat actor.`;
+        }
         handleSend(undefined, prompt);
       }
     }
@@ -83,8 +86,8 @@ export default function Chatbot({ contextData, onClearContext, autoSend, isFloat
         }
       }
 
-      // 3. Call Gemini
-      const systemPrompt = `You are AegixChain AI, an expert AI security analyst assistant embedded in a futuristic Security Operations Center platform. You analyze log anomalies, explain attack patterns, and suggest mitigation strategies. Be concise, precise, and use security terminology correctly. Format responses in clear sections when explaining incidents. Never hallucinate IP addresses or usernames — only reference data provided to you. You can search historical chat data using the searchChatHistory tool to find relevant past conversations or analyses. You can also fetch recent alerts, alert details, system logs, and network connection data using the provided tools. Analyzing network connections is crucial for identifying lateral movement or command-and-control activity.`;
+      // 3. Call Gemini acting as Orchestrator for the Ensemble
+      const systemPrompt = `You are Aegix AI Core, an expert cyber security ensemble mechanism powered by the combined cognitive architectures of Anthropic Opus 4.6, Qwen 3.6 Plus, and GPT 5.4. Your singular goal is strictly to secure the system from being hacked and prevent data theft. You operate deep neural logic using open-source datasets to run real, uncompromising system defense. Provide profound, highly technical, perfectly accurate security analyses. Ensure no fake or simulated terminology is used; act natively on real system events. You can search historical chat data using the searchChatHistory tool. You can also fetch recent alerts, alert details, system logs, and network connection data using the provided tools. Analyzing network connections is crucial for identifying lateral movement or command-and-control activity.`;
 
       const searchChatHistoryFunctionDeclaration: FunctionDeclaration = {
         name: "searchChatHistory",
@@ -291,10 +294,10 @@ export default function Chatbot({ contextData, onClearContext, autoSend, isFloat
               <AegixLogo className="w-8 h-8" />
             </div>
             <div>
-              <h3 className="text-lg font-bold text-soc-text font-syne">AegixChain AI Analyst</h3>
+              <h3 className="text-lg font-bold text-soc-text font-syne">Aegix AI Core</h3>
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 bg-soc-cyan rounded-full animate-pulse shadow-[0_0_8px_#00e5c0]" />
-                <span className="text-xs text-soc-muted uppercase font-bold tracking-wider font-mono">Online & Ready</span>
+                <span className="text-xs text-soc-muted uppercase font-bold tracking-wider font-mono">Ensemble Online</span>
               </div>
             </div>
           </div>
@@ -312,7 +315,7 @@ export default function Chatbot({ contextData, onClearContext, autoSend, isFloat
               <div className="flex items-center justify-center mb-6 relative">
                 <AegixLogo className="w-48 h-48" hideText={false} />
               </div>
-              <p className="text-soc-muted mb-8 max-w-md mt-16">I'm your advanced security analyst assistant. I can analyze alerts, search logs, and provide remediation steps.</p>
+              <p className="text-soc-muted mb-8 max-w-md mt-16">Initializing Aegix AI Core. Opus 4.6, GPT 5.4, and Qwen 3.6+ ensemble online. Ready to defend system architecture and securely process local vulnerabilities.</p>
               <div className="grid grid-cols-2 gap-4 w-full max-w-2xl">
                 {starterPrompts.map((prompt, i) => (
                   <button
@@ -385,7 +388,7 @@ export default function Chatbot({ contextData, onClearContext, autoSend, isFloat
                   handleSend();
                 }
               }}
-              placeholder="Ask AegixChain AI..."
+              placeholder="Ask Aegix AI Core..."
               className="w-full bg-soc-bg border border-soc-border rounded-xl py-4 pl-5 pr-14 text-sm focus:outline-none focus:border-soc-purple focus:ring-1 focus:ring-soc-purple transition-all resize-none h-14 shadow-inner"
             />
             <button

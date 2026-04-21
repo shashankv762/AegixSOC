@@ -4,6 +4,7 @@ import { api } from '../api/client';
 import { Brain, ShieldAlert, Cpu, Activity, CheckCircle2, AlertTriangle, Zap, FileText, X, Skull, Volume2, VolumeX, Globe, Database, Server, User } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
+import NeuralCore from './NeuralCore';
 import DefenceInDepth from './DefenceInDepth';
 import AttackerProfile from './AttackerProfile';
 import CampaignNamer from './CampaignNamer';
@@ -57,16 +58,11 @@ export default function AegixBrain() {
           >
             <Skull className="w-5 h-5" />
           </button>
-          <div className="glass-panel px-4 py-2 rounded-lg flex items-center gap-2 border border-soc-purple/30">
-            <div className="w-2 h-2 rounded-full bg-soc-purple animate-pulse shadow-[0_0_8px_#8b5cf6]"></div>
-            <span className="text-xs font-bold text-soc-purple uppercase tracking-widest">Episodic Memory Sync</span>
-          </div>
-          <div className="glass-panel px-4 py-2 rounded-lg flex items-center gap-2 border border-soc-cyan/30">
-            <div className="w-2 h-2 rounded-full bg-soc-cyan animate-pulse shadow-[0_0_8px_#00e5c0]"></div>
-            <span className="text-xs font-bold text-soc-cyan uppercase tracking-widest">Self-Hardening Active</span>
-          </div>
         </div>
       </div>
+
+      {/* Advanced Threat Defense Engine (Mythos AI) */}
+      <NeuralCore />
 
       {/* Row 1: Defence In Depth & Campaign */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -92,9 +88,13 @@ export default function AegixBrain() {
               Brain Configuration
             </h3>
             <div className="space-y-4">
-              <div className="flex justify-between items-center p-3 rounded-lg bg-black/40 border border-white/5">
-                <span className="text-sm text-soc-muted">LLM Engine</span>
-                <span className="text-xs font-mono text-soc-cyan bg-soc-cyan/10 px-2 py-1 rounded">Gemini 2.5 Flash</span>
+              <div className="flex justify-between items-center p-3 rounded-lg bg-black/40 border border-white/5 flex-wrap gap-2">
+                <span className="text-sm text-soc-muted">LLM Ensemble Layer</span>
+                <div className="flex gap-1 flex-wrap justify-end">
+                    <span className="text-[10px] font-mono text-soc-cyan bg-soc-cyan/10 px-2 py-1 rounded">Opus 4.6</span>
+                    <span className="text-[10px] font-mono text-soc-purple bg-soc-purple/10 px-2 py-1 rounded">GPT 5.4</span>
+                    <span className="text-[10px] font-mono text-soc-green bg-soc-green/10 px-2 py-1 rounded">Qwen 3.6+</span>
+                </div>
               </div>
               <div className="flex justify-between items-center p-3 rounded-lg bg-black/40 border border-white/5">
                 <span className="text-sm text-soc-muted">Memory Architecture</span>

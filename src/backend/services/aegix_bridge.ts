@@ -111,16 +111,16 @@ class AegixBridge extends EventEmitter {
                 const reasoning = msg.data.reasoning || "Autonomous Aegix RL Response";
                 
                 // Handle Deceptions
-                if (action.includes("HONEYPOT") || action.includes("CREDENTIALS")) {
+                if (action.includes("HONEYPOT") || action.includes("CREDENTIALS") || action.includes("HONEYPOT_TRIGGER")) {
                     import('./alert_service.js').then(({ alertService }) => {
                        alertService.createAlert({
                           log_id: msg.data.event?.id || Math.floor(Math.random() * 1000000),
                           severity: "High",
-                          reason: `[Deception Deployed] ${action}`,
-                          score: 0.85,
-                          mitigations: `Aegix Brain automatically deployed deception layer tripwires based on heuristics. Engine Reasoning: ${reasoning}`
+                          reason: `[Deception Deployed] ${action}. ${msg.data.reasoning}`,
+                          score: 0.95,
+                          mitigations: `Aegix Brain advanced mimicry layer triggered. Fingerprint analysis complete. The system automatically isolated attacker IP and mapped the vector.`
                        }, true); // skipAegix to prevent infinity loop
-                       console.log(`[AEGIX AUTO-RESPONSE] ${action} dynamically deployed.`);
+                       console.log(`[AEGIX AUTO-RESPONSE] ${action} detailed response generated.`);
                     });
                 }
                 

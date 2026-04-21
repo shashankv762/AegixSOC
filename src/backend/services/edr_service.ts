@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { spawn } from 'child_process';
+import { spawn, spawnSync } from 'child_process';
 
 const INBOX_DIR = path.join(process.cwd(), 'sandbox', 'inbox');
 const QUARANTINE_DIR = path.join(process.cwd(), 'sandbox', 'quarantine');
@@ -132,10 +132,26 @@ class EDRService {
         let score = Math.floor(Math.random() * 20) + 1; // 1-20
         let details = "Structural analysis complete. No malicious payloads or polymorphic signatures detected.";
 
-        if (isSuspicious) {
+        // Execute Yara scan
+        let yaraMatches: string[] = [];
+        try {
+            const yaraProc = spawnSync('python3', [path.join(process.cwd(), 'src/backend/ai/yara_tool.py'), targetPath], { encoding: 'utf-8' });
+            if (yaraProc.stdout) {
+               yaraMatches = JSON.parse(yaraProc.stdout.trim());
+            }
+        } catch (e) {
+            console.warn("Yara scan failed:", e);
+        }
+
+        if (isSuspicious || yaraMatches.length > 0) {
           classification = "Malicious";
           score = Math.floor(Math.random() * 15) + 85; // 85-99
-          details = `Heuristic flag triggered: Suspicious execution characteristics identified. Extension: '${ext || 'none'}', Execution bit set: ${isExecutableFlag}.`;
+          details = "Heuristic flag triggered or YARA rules matched: Suspicious execution characteristics identified. ";
+          if (yaraMatches.length > 0) {
+            details += `Deep File System YARA matches found: ${yaraMatches.join(', ')}.`;
+          } else {
+            details += `Extension: '${ext || 'none'}', Execution bit set: ${isExecutableFlag}.`;
+          }
         }
         
         resolve({
@@ -144,6 +160,7 @@ class EDRService {
           classification,
           threatScore: score,
           details,
+          yaraMatches,
           timestamp: new Date().toISOString()
         });
       } catch (err: any) {

@@ -14,6 +14,8 @@ export default function LogFeed({ onSelectLog }: LogFeedProps) {
   const [filterEventType, setFilterEventType] = useState('');
   const [filterSourceIp, setFilterSourceIp] = useState('');
   const [filterAnomaly, setFilterAnomaly] = useState('all'); // 'all', 'anomaly', 'normal'
+  const [filterStatusMin, setFilterStatusMin] = useState<string>('');
+  const [filterStatusMax, setFilterStatusMax] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
 
   const filteredLogs = useMemo(() => {
@@ -23,9 +25,11 @@ export default function LogFeed({ onSelectLog }: LogFeedProps) {
       if (filterSourceIp && !log.source_ip.includes(filterSourceIp)) return false;
       if (filterAnomaly === 'anomaly' && !log.is_anomaly) return false;
       if (filterAnomaly === 'normal' && log.is_anomaly) return false;
+      if (filterStatusMin !== '' && log.status_code < Number(filterStatusMin)) return false;
+      if (filterStatusMax !== '' && log.status_code > Number(filterStatusMax)) return false;
       return true;
     });
-  }, [logs, filterEventType, filterSourceIp, filterAnomaly]);
+  }, [logs, filterEventType, filterSourceIp, filterAnomaly, filterStatusMin, filterStatusMax]);
 
   const uniqueEventTypes = useMemo(() => {
     if (!logs || !Array.isArray(logs)) return [];
@@ -92,26 +96,49 @@ export default function LogFeed({ onSelectLog }: LogFeedProps) {
               </div>
               
               <div className="flex flex-col gap-1.5">
-                <label className="text-[10px] uppercase font-bold text-soc-muted tracking-widest ml-1">Status</label>
+                <label className="text-[10px] uppercase font-bold text-soc-muted tracking-widest ml-1">Anomaly Status</label>
                 <select 
                   value={filterAnomaly} 
                   onChange={e => setFilterAnomaly(e.target.value)}
                   className="bg-soc-surface/50 border border-soc-border/50 rounded-xl px-3 py-2 text-sm text-soc-text outline-none focus:border-soc-cyan/50 focus:ring-1 focus:ring-soc-cyan/50 transition-all font-mono"
                 >
-                  <option value="all">All Statuses</option>
+                  <option value="all">All</option>
                   <option value="anomaly">Anomaly Only</option>
                   <option value="normal">Normal Only</option>
                 </select>
               </div>
+
+              <div className="flex flex-col gap-1.5 md:col-span-3 lg:col-span-1">
+                <label className="text-[10px] uppercase font-bold text-soc-muted tracking-widest ml-1">Status Code Range</label>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="number" 
+                    placeholder="Min"
+                    value={filterStatusMin} 
+                    onChange={e => setFilterStatusMin(e.target.value)}
+                    className="w-full bg-soc-surface/50 border border-soc-border/50 rounded-xl px-3 py-2 text-sm text-soc-text outline-none focus:border-soc-cyan/50 focus:ring-1 focus:ring-soc-cyan/50 transition-all font-mono"
+                  />
+                  <span className="text-soc-muted">-</span>
+                  <input 
+                    type="number" 
+                    placeholder="Max"
+                    value={filterStatusMax} 
+                    onChange={e => setFilterStatusMax(e.target.value)}
+                    className="w-full bg-soc-surface/50 border border-soc-border/50 rounded-xl px-3 py-2 text-sm text-soc-text outline-none focus:border-soc-cyan/50 focus:ring-1 focus:ring-soc-cyan/50 transition-all font-mono"
+                  />
+                </div>
+              </div>
             </div>
             
-            {(filterEventType || filterSourceIp || filterAnomaly !== 'all') && (
+            {(filterEventType || filterSourceIp || filterAnomaly !== 'all' || filterStatusMin !== '' || filterStatusMax !== '') && (
               <div className="px-4 pb-4 flex justify-end">
                 <button 
                   onClick={() => {
                     setFilterEventType('');
                     setFilterSourceIp('');
                     setFilterAnomaly('all');
+                    setFilterStatusMin('');
+                    setFilterStatusMax('');
                   }}
                   className="flex items-center gap-1 text-xs font-bold text-soc-muted hover:text-soc-text px-3 py-1.5 rounded-lg hover:bg-soc-surface/50 transition-colors"
                 >

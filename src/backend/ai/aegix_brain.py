@@ -242,8 +242,16 @@ class RLDecisionAgent:
             self.DummyEnv = DummyEnv
 
             if os.path.exists(self.model_path):
-                self.model = PPO.load(self.model_path)
-                print(json.dumps({"status": "ready", "message": "RL Agent loaded from disk."}), flush=True)
+                try:
+                    self.model = PPO.load(self.model_path)
+                    print(json.dumps({"status": "ready", "message": "RL Agent loaded from disk."}), flush=True)
+                except Exception as load_err:
+                    print(json.dumps({"status": "warning", "message": f"Failed to load existing RL Agent ({load_err}), re-initializing."}), flush=True)
+                    os.remove(self.model_path)
+                    env = self.DummyEnv()
+                    self.model = PPO("MlpPolicy", env, verbose=0, n_steps=16, batch_size=16)
+                    self.model.save(self.model_path)
+                    print(json.dumps({"status": "ready", "message": "RL Agent initialized with new policy."}), flush=True)
             else:
                 env = self.DummyEnv()
                 self.model = PPO("MlpPolicy", env, verbose=0, n_steps=16, batch_size=16)
@@ -447,12 +455,17 @@ class CampaignNamer:
             }
 
 class MalwareAnalyzer:
-    def analyze(self, event: Dict[str, Any]) -> Dict[str, Any]:
+    def analyze(self, event: Dict[str, Any], yara_matches: List[str] = []) -> Dict[str, Any]:
         payload = str(event.get("payload", "")).lower()
         is_malware = False
         classification = "Clean"
         detected_apis = []
         
+        if yara_matches:
+            is_malware = True
+            detected_apis.extend([f"YARA Match: {rule}" for rule in yara_matches])
+            classification = "YARA Rule Triggered"
+            
         # API Calls and Suspicious Strings Indicators
         indicators = {
             "virtualalloc": "Memory allocation (potential unpacking/injection)",
@@ -479,7 +492,8 @@ class MalwareAnalyzer:
                 detected_apis.append(f"{ind} - {desc}")
         
         if is_malware:
-            classification = "Suspicious Script / Reverse Shell / Dropper"
+            if classification == "Clean":
+                classification = "Suspicious Script / Reverse Shell / Dropper"
         elif "0x" in payload and len(payload) > 50:
             is_malware = True
             classification = "Possible Shellcode / Binary Payload"
@@ -584,7 +598,7 @@ class AegixAgent:
             yara_matches = self.yara.scan_file(event["file_path"])
             
         # Malware Analysis Pipeline (Static + Dynamic)
-        malware_result = self.malware_analyzer.analyze(event)
+        malware_result = self.malware_analyzer.analyze(event, yara_matches)
 
         # Escalate Severity for critical matches
         if kill_chain.get("confidence") == "Critical" or any("evil.exe" in match.lower() for match in sigma_matches):
@@ -685,7 +699,7 @@ class AegixAgent:
             if state.get("action") == "LLM_DECISION" or rl_decision == "LLM_DECISION":
                 if self.llm:
                     try:
-                        system_instruction = "You are AEGIX, a highly advanced, fully autonomous SOC AI. Your goal is to critically analyze security events and decide the best protective response action. The available actions you can choose from are ONLY: [IGNORE, BLOCK_IP, ISOLATE_ENDPOINT, DEPLOY_HONEYPOT, DEPLOY_HONEY_CREDENTIALS]. You MUST analyze the payload, threat score, anomaly classification, and attacker profile. If behavior looks like a scanner or lateral movement, prefer a honeypot. If it looks like privilege escalation or credential dumping, prefer honey credentials. Reply with ONLY a JSON object containing 'action' and 'reasoning'."
+                        system_instruction = "You are Aegix AI Core, an expert cyber security ensemble mechanism utilizing deep neural logic and open-world datasets. You are powered by Qwen 3.6 Plus, Opus 4.6, and GPT 5.4. Your singular goal is strictly to secure the system from being hacked. If the payload indicates advanced persistent threats, simulate a consultation with Qwen 3.6 Plus internally. You act natively on real system events. The available actions you can choose from are ONLY: [IGNORE, BLOCK_IP, ISOLATE_ENDPOINT, DEPLOY_HONEYPOT, DEPLOY_HONEY_CREDENTIALS]. You MUST analyze the payload, threat score, anomaly classification, and attacker profile. If behavior looks like a scanner or lateral movement, prefer a honeypot. If it looks like privilege escalation or credential dumping, prefer honey credentials. Reply with ONLY a valid JSON object containing 'action' and 'reasoning'."
                         
                         prompt = json.dumps({
                             "event_data": event,
@@ -732,7 +746,7 @@ class AegixAgent:
                 res = self.response_engine.deception.deploy_trap("fake_credentials", "lsass_memory")
                 execution_details.append(res)
             else:
-                res = self.response_engine.deploy_honeypot(port=8080, service_type="http")
+                res = self.response_engine.deploy_honeypot(port=8080, service_type="http_mimic")
                 execution_details.append(res)
             state["execution_result"] = f"Executed Deception Engine: {action}"
             state["execution_details"] = execution_details
@@ -758,7 +772,7 @@ class AegixAgent:
                 execution_details.append(res)
                 
             if "honeypot" in text_to_parse:
-                res = self.response_engine.deploy_honeypot(8080, "http")
+                res = self.response_engine.deploy_honeypot(8080, "http_mimic")
                 execution_details.append(res)
                 
             if "trap" in text_to_parse or "deception" in text_to_parse:

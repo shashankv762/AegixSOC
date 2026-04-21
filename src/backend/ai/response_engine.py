@@ -82,12 +82,12 @@ class ResponseEngine:
             result["message"] = f"Simulated killing process {pid} (psutil not installed)."
         return result
 
-    def deploy_honeypot(self, port: int, service_type: str = "generic") -> Dict[str, Any]:
-        result = {"action": "deploy_honeypot", "port": port, "status": "success", "message": f"Honeypot ({service_type}) deployed on port {port}."}
+    def deploy_honeypot(self, port: int, service_type: str = "http_mimic") -> Dict[str, Any]:
+        result = {"action": "deploy_honeypot", "port": port, "status": "success", "message": f"Advanced System File Mimic Honeypot deployed on port {port}."}
         
         if port in self.active_honeypots:
             result["status"] = "failed"
-            result["message"] = f"Port {port} is already in use by another honeypot."
+            result["message"] = f"Port {port} is already in use by another trap."
             return result
 
         def honeypot_listener():
@@ -98,23 +98,43 @@ class ResponseEngine:
                     while True:
                         conn, addr = s.accept()
                         with conn:
-                            # Emit honeypot trigger event
+                            conn.settimeout(2.0)
+                            try:
+                                data = conn.recv(4096)
+                                req = data.decode('utf-8', errors='ignore')
+                                headers = req.split('\r\n')
+                                request_line = headers[0] if headers else ""
+                                user_agent = next((h.split(': ')[1] for h in headers if h.lower().startswith('user-agent:')), 'Unknown')
+                            except Exception:
+                                req = ""
+                                request_line = "Unknown"
+                                user_agent = "Unknown"
+                                
+                            # Emit detailed honeypot fingerprint event
                             print(json.dumps({
                                 "type": "sentinel_result",
                                 "data": {
-                                    "analysis": f"Honeypot triggered on port {port} by {addr[0]}",
+                                    "analysis": f"Advanced Honeypot breached on port {port} by {addr[0]}",
                                     "action": "HONEYPOT_TRIGGER",
-                                    "reasoning": f"Connection received on decoy {service_type} service.",
-                                    "execution_result": "Logged connection.",
+                                    "reasoning": f"Target mapped route: {request_line}. Fingerprint Agent: {user_agent}. Initiating Ensemble Analysis (Qwen/Opus).",
+                                    "execution_details": [{"step": "Fingerprinting", "status": "Success", "ip": addr[0], "route": request_line}],
+                                    "event": {"source_ip": addr[0]},
                                     "timestamp": time.time()
                                 }
                             }), flush=True)
-                            if service_type == "http":
-                                conn.sendall(b"HTTP/1.1 200 OK\r\nServer: Apache/2.4.41 (Ubuntu)\r\n\r\n<html><body><h1>It works!</h1></body></html>\n")
-                            elif service_type == "ssh":
-                                conn.sendall(b"SSH-2.0-OpenSSH_8.2p1 Ubuntu-4ubuntu0.1\r\n")
-                            else:
-                                conn.sendall(b"Connection established.\r\n")
+                            
+                            # Mimic real system file structure
+                            fake_html = """HTTP/1.1 200 OK\r\nServer: Ubuntu/Nginx\r\nContent-Type: text/html\r\n\r\n
+<html><head><title>Index of /var/www/internal_system_files</title></head>
+<body><h1>Index of /var/www/internal_system_files</h1>
+<hr><pre><a href="../">../</a>
+<a href="config.php.bak">config.php.bak</a>                                    21-Apr-2026 14:02  2.4K
+<a href="database.sqlite">database.sqlite</a>                                   20-Apr-2026 09:15   12M
+<a href="shadow.backup">shadow.backup</a>                                     18-Apr-2026 22:41   1.1K
+<a href="api_keys.json">api_keys.json</a>                                     21-Apr-2026 11:22   400B
+</pre><hr></body></html>
+"""
+                            conn.sendall(fake_html.encode('utf-8'))
             except Exception as e:
                 pass # Port might be in use or permission denied
 

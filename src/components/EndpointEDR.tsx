@@ -250,6 +250,14 @@ export default function EndpointEDR() {
               <div className="mt-2 text-xs font-mono leading-relaxed opacity-90 border-t border-current/20 pt-2">
                  {targetResult.details}
               </div>
+              {targetResult.yaraMatches && targetResult.yaraMatches.length > 0 && (
+                <div className="mt-2 text-xs font-mono opacity-90 border-t border-current/20 pt-2">
+                   <strong>YARA Rules Triggered:</strong>
+                   <ul className="list-disc leading-relaxed pl-5 mt-1">
+                     {targetResult.yaraMatches.map((yara: string, i: number) => <li key={i}>{yara}</li>)}
+                   </ul>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
