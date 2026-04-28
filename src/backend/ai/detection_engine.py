@@ -424,6 +424,18 @@ class KillChainCorrelator:
             elif "download" in evt_type or "transfer" in evt_type or "exfil" in evt_type or "scp" in payload or "ftp" in payload or "wget" in payload:
                 has_exfil = True
                 
+        # DIMENSION 3: Chained Vulnerability Attack Detection
+        # Detect if 3+ events from the same source in the sliding window (irrespective of severity)
+        is_chained_attack = len(ip_events) >= 3
+
+        if is_chained_attack and not has_exfil and not has_exploit and not has_recon:
+            return {
+                "chain_detected": True,
+                "stage": "Chained Vulnerability Scan",
+                "confidence": "High",
+                "message": f"Chained Vulnerability Attack Detected: {len(ip_events)} events from {source_ip} within sliding window. Escalating."
+            }
+
         if has_recon and has_exploit and has_exfil:
             return {
                 "chain_detected": True,

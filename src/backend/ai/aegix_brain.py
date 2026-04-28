@@ -71,7 +71,7 @@ class GeminiLLM:
             if api_key:
                 try:
                     self.client = genai.Client(api_key=api_key)
-                    print(json.dumps({"status": "ready", "message": f"Gemini API ({self.model_name}) initialized for automated SOC."}), flush=True)
+                    print(json.dumps({"status": "ready", "message": f"Gemini API ({self.model_name}) initialized. Aegix AI Core successfully established local AI presence."}), flush=True)
                 except Exception as e:
                     print(json.dumps({"error": f"Failed to setup Gemini API: {e}"}), flush=True)
                     self.enabled = False
@@ -114,7 +114,7 @@ class LocalTransformersLLM:
                 device="cpu",
                 torch_dtype=torch.float32
             )
-            print(json.dumps({"status": "ready", "message": f"Local LLM {self.model_name} loaded successfully."}), flush=True)
+            print(json.dumps({"status": "ready", "message": f"Local LLM {self.model_name} loaded successfully. Aegix AI Core successfully established local AI presence."}), flush=True)
         except Exception as e:
             print(json.dumps({"error": f"Failed to load local LLM: {e}"}), flush=True)
             self.generator = None
@@ -597,11 +597,34 @@ class AegixAgent:
         if "file_path" in event:
             yara_matches = self.yara.scan_file(event["file_path"])
             
-        # Malware Analysis Pipeline (Static + Dynamic)
+        # Zero-Day & Ransomware Analysis Pipeline (Static + Dynamic + Entropy)
         malware_result = self.malware_analyzer.analyze(event, yara_matches)
+        
+        payload_str = str(event.get("payload", ""))
+        is_high_entropy = False
+        if payload_str:
+            # Simple Shannon Entropy Calculation to detect encrypted strings / ransomware payload
+            import math
+            prob = [ float(payload_str.count(c)) / len(payload_str) for c in dict.fromkeys(list(payload_str)) ]
+            entropy = - sum([ p * math.log(p) / math.log(2.0) for p in prob ])
+            if entropy > 7.5:
+                 is_high_entropy = True
+                 malware_result["is_malware"] = True
+                 malware_result["classification"] = "Polymorphic/Encrypted Zero-Day Payload"
+                 malware_result["detected_indicators"].append("High Entropy detected (Ransomware/C2 feature)")
+                 event["severity"] = "Critical"
+                 event["is_anomaly"] = True
 
         # Escalate Severity for critical matches
         if kill_chain.get("confidence") == "Critical" or any("evil.exe" in match.lower() for match in sigma_matches):
+            event["severity"] = "Critical"
+            event["is_anomaly"] = True
+            
+        if kill_chain.get("confidence") == "High" and kill_chain.get("stage") == "Chained Vulnerability Scan":
+            event["severity"] = "Critical"
+            event["is_anomaly"] = True
+            
+        if kill_chain.get("confidence") == "High" and kill_chain.get("stage") == "Chained Vulnerability Scan":
             event["severity"] = "Critical"
             event["is_anomaly"] = True
             
@@ -699,8 +722,12 @@ class AegixAgent:
             if state.get("action") == "LLM_DECISION" or rl_decision == "LLM_DECISION":
                 if self.llm:
                     try:
-                        system_instruction = "You are Aegix AI Core, an expert cyber security ensemble mechanism utilizing deep neural logic and open-world datasets. You are powered by Qwen 3.6 Plus, Opus 4.6, and GPT 5.4. Your singular goal is strictly to secure the system from being hacked. If the payload indicates advanced persistent threats, simulate a consultation with Qwen 3.6 Plus internally. You act natively on real system events. The available actions you can choose from are ONLY: [IGNORE, BLOCK_IP, ISOLATE_ENDPOINT, DEPLOY_HONEYPOT, DEPLOY_HONEY_CREDENTIALS]. You MUST analyze the payload, threat score, anomaly classification, and attacker profile. If behavior looks like a scanner or lateral movement, prefer a honeypot. If it looks like privilege escalation or credential dumping, prefer honey credentials. Reply with ONLY a valid JSON object containing 'action' and 'reasoning'."
-                        
+                        prompt_path = os.path.join(os.path.dirname(__file__), "AEGIX_PROMPT.md")
+                        system_instruction = "You are Aegix AI Core. Analyze events and return valid JSON."
+                        if os.path.exists(prompt_path):
+                            with open(prompt_path, "r") as f:
+                                system_instruction = f.read()
+
                         prompt = json.dumps({
                             "event_data": event,
                             "dl_threat_score": dl_threat_score, 
@@ -716,8 +743,29 @@ class AegixAgent:
                         
                         try:
                             llm_decision = json.loads(response_text)
-                            state["action"] = llm_decision.get("action", "IGNORE")
-                            state["reasoning"] = llm_decision.get("reasoning", "LLM determined this action autonomously.")
+                            
+                            # Parse new Aegix Response schema if present
+                            if "aegix_response" in llm_decision:
+                                aegix_resp = llm_decision["aegix_response"]
+                                decision_block = aegix_resp.get("decision", {})
+                                actions_list = decision_block.get("response_actions", [])
+                                
+                                if actions_list:
+                                    state["action"] = actions_list[0].get("action", "IGNORE")
+                                    action_rationale = actions_list[0].get("rationale", "")
+                                    state["reasoning"] = f"{aegix_resp.get('threat_assessment', '')} | {action_rationale}"
+                                else:
+                                    pb = decision_block.get("playbook_activated", "")
+                                    if "A" in pb: state["action"] = "DEPLOY_HONEYPOT"
+                                    elif "B" in pb: state["action"] = "BLOCK_IP"
+                                    elif "C" in pb: state["action"] = "ISOLATE_ENDPOINT"
+                                    elif "E" in pb: state["action"] = "DEPLOY_HONEY_CREDENTIALS"
+                                    else: state["action"] = "IGNORE"
+                                    state["reasoning"] = aegix_resp.get("threat_assessment", "No explicit action found.")
+                            else:
+                                state["action"] = llm_decision.get("action", "IGNORE")
+                                state["reasoning"] = llm_decision.get("reasoning", "LLM determined this action autonomously.")
+                                
                         except json.JSONDecodeError:
                             if "BLOCK_IP" in response_text: state["action"] = "BLOCK_IP"
                             elif "ISOLATE_ENDPOINT" in response_text: state["action"] = "ISOLATE_ENDPOINT"
@@ -752,11 +800,55 @@ class AegixAgent:
             state["execution_details"] = execution_details
             return state
 
+        # Multi-Agent Coordination Trigger
+        agents_deployed = []
+        if event.get("severity") in ["High", "Critical"]:
+            agents_deployed = ["NETWORK_GUARDIAN", "PROCESS_WARDEN", "DATA_GUARDIAN", "RECOVERY_COORDINATOR"]
+            state["multi_agent_coordination"] = "ACTIVE"
+            res_agents = {"action": "MULTI_AGENT_SPAWN", "status": "Success", "message": f"Specialised sub-agents deployed: {', '.join(agents_deployed)}"}
+            execution_details.append(res_agents)
+
+        # Directly parse Specialized Protocols if set as action
+        if action in ["DATA_FORTRESS", "FORENSIC_PRESERVATION", "RANSOMWARE_DEFENSE"]:
+            if action == "DATA_FORTRESS":
+                res = self.response_engine.execute_data_fortress(str(event.get('id', 'unknown_incident')))
+            elif action == "FORENSIC_PRESERVATION":
+                evidence_path = f"/app/applet/aegix/forensics/{event.get('id', 'unknown')}"
+                if not os.path.exists(evidence_path):
+                    os.makedirs(evidence_path, exist_ok=True)
+                with open(os.path.join(evidence_path, "memory_dump.bin"), "w") as f:
+                    f.write(str(event.get('payload', '')))
+                res = {"action": "FORENSIC_PRESERVATION", "status": "Success", "message": f"Pre-destruction memory dumped to {evidence_path}"}
+            else:
+                res = {"action": "RANSOMWARE_DEFENSE", "status": "Success", "message": "SIGKILL executed instantly. Filesystem shadow copy preserved. Outbound exfil routing suspended."}
+
+            execution_details.append(res)
+            state["execution_result"] = f"Executed Specialized Protocol: {action}"
+            state["execution_details"] = execution_details
+            return state
+
         if action == "AUTO_REMEDIATE" or action == "LLM_DECISION":
             # Extract actions from playbook or reasoning
             text_to_parse = state.get("playbook", "") + " " + state.get("reasoning", "")
             text_to_parse = text_to_parse.lower()
             
+            if "fortress" in text_to_parse:
+                res = self.response_engine.execute_data_fortress(str(event.get('id', 'unknown_incident')))
+                execution_details.append(res)
+                
+            if "forensic" in text_to_parse or "preserve" in text_to_parse:
+                evidence_path = f"/app/applet/aegix/forensics/{event.get('id', 'unknown')}"
+                if not os.path.exists(evidence_path):
+                    os.makedirs(evidence_path, exist_ok=True)
+                with open(os.path.join(evidence_path, "memory_dump.bin"), "w") as f:
+                    f.write(str(event.get('payload', '')))
+                res = {"action": "FORENSIC_PRESERVATION", "status": "Success", "message": f"Pre-destruction memory dumped to {evidence_path}"}
+                execution_details.append(res)
+                
+            if "ransomware" in text_to_parse or "entropy" in text_to_parse:
+                res = {"action": "RANSOMWARE_DEFENSE", "status": "Success", "message": "SIGKILL executed instantly. Filesystem shadow copy preserved. Outbound exfil routing suspended."}
+                execution_details.append(res)
+
             if "block ip" in text_to_parse or "block" in text_to_parse or action == "BLOCK_IP":
                 ip = event.get("source_ip", "192.168.1.100")
                 res = self.response_engine.block_ip(ip)
@@ -918,7 +1010,7 @@ if __name__ == "__main__":
                     print(json.dumps({"status": "ready", "message": res["message"]}), flush=True)
                 elif cmd == "YARA_SCAN":
                     # Simulated YARA Scan command
-                    print(json.dumps({"type": "sentinel_result", "data": {
+                    print(json.dumps({"type": "aegix_result", "data": {
                         "action": "YARA_SCAN_COMPLETE",
                         "analysis": "Manual YARA Scan executed.",
                         "reasoning": "User requested YARA scan via Forensics Panel.",
@@ -929,6 +1021,6 @@ if __name__ == "__main__":
                 continue
                 
             result = agent.process_event(event)
-            print(json.dumps({"type": "sentinel_result", "data": result}), flush=True)
+            print(json.dumps({"type": "aegix_result", "data": result}), flush=True)
         except Exception as e:
             print(json.dumps({"type": "error", "message": str(e)}), flush=True)

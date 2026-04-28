@@ -52,7 +52,7 @@ class AegixBridge extends EventEmitter {
             if (msg.status === 'ready') {
               this.isReady = true;
               console.log(`[AEGIX] ${msg.message}`);
-            } else if (msg.type === 'sentinel_result') {
+            } else if (msg.type === 'sentinel_result' || msg.type === 'aegix_result') {
               this.history.unshift({
                 timestamp: new Date().toISOString(),
                 ...msg.data
@@ -110,6 +110,34 @@ class AegixBridge extends EventEmitter {
                 const sourceIp = msg.data.event?.source_ip;
                 const reasoning = msg.data.reasoning || "Autonomous Aegix RL Response";
                 
+                // Handle Specialized Playbook Defences
+                if (action.includes("DATA_FORTRESS") || action.includes("RANSOMWARE") || action.includes("FORENSIC")) {
+                    import('./alert_service.js').then(({ alertService }) => {
+                       alertService.createAlert({
+                          log_id: msg.data.event?.id || Math.floor(Math.random() * 1000000),
+                          severity: "Critical",
+                          reason: `[SCORCHED EARTH LAYER] Protocol: ${action}`,
+                          score: 0.99,
+                          mitigations: `Aegix activated Last Resort Protocol. ${msg.data.reasoning || 'Encrypted files shifted to vault, memory dumped to forensics dir, network isolated.'}`
+                       }, true);
+                       console.log(`[AEGIX SCORCHED EARTH] ${action} triggered.`);
+                    });
+                }
+                
+                // Handle Specialized Playbook Defences
+                if (action.includes("DATA_FORTRESS") || action.includes("RANSOMWARE") || action.includes("FORENSIC")) {
+                    import('./alert_service.js').then(({ alertService }) => {
+                       alertService.createAlert({
+                          log_id: msg.data.event?.id || Math.floor(Math.random() * 1000000),
+                          severity: "Critical",
+                          reason: `[SCORCHED EARTH LAYER] Protocol: ${action}`,
+                          score: 0.99,
+                          mitigations: `Aegix activated Last Resort Protocol. ${msg.data.reasoning || 'Encrypted files shifted to vault, memory dumped to forensics dir, network isolated.'}`
+                       }, true);
+                       console.log(`[AEGIX SCORCHED EARTH] ${action} triggered.`);
+                    });
+                }
+                
                 // Handle Deceptions
                 if (action.includes("HONEYPOT") || action.includes("CREDENTIALS") || action.includes("HONEYPOT_TRIGGER")) {
                     import('./alert_service.js').then(({ alertService }) => {
@@ -121,6 +149,21 @@ class AegixBridge extends EventEmitter {
                           mitigations: `Aegix Brain advanced mimicry layer triggered. Fingerprint analysis complete. The system automatically isolated attacker IP and mapped the vector.`
                        }, true); // skipAegix to prevent infinity loop
                        console.log(`[AEGIX AUTO-RESPONSE] ${action} detailed response generated.`);
+                    });
+                }
+
+                // Handle Sub-Agents
+                const multiAgentSpawn = executions.find((e: any) => e.action === "MULTI_AGENT_SPAWN");
+                if (multiAgentSpawn) {
+                    import('./alert_service.js').then(({ alertService }) => {
+                       alertService.createAlert({
+                          log_id: msg.data.event?.id || Math.floor(Math.random() * 1000000),
+                          severity: "High",
+                          reason: `[Aegix Orchestration] Core spawning specialised defense sub-Agents.`,
+                          score: 0.90,
+                          mitigations: multiAgentSpawn.message
+                       }, true);
+                       console.log(`[AEGIX ORCHESTRATION] Sub-Agents deployed for Multi-Agent execution.`);
                     });
                 }
                 

@@ -112,7 +112,7 @@ class ResponseEngine:
                                 
                             # Emit detailed honeypot fingerprint event
                             print(json.dumps({
-                                "type": "sentinel_result",
+                                "type": "aegix_result",
                                 "data": {
                                     "analysis": f"Advanced Honeypot breached on port {port} by {addr[0]}",
                                     "action": "HONEYPOT_TRIGGER",
@@ -141,6 +141,26 @@ class ResponseEngine:
         t = threading.Thread(target=honeypot_listener, daemon=True)
         t.start()
         self.active_honeypots[port] = t
+        return result
+
+    def execute_data_fortress(self, incident_id: str) -> Dict[str, Any]:
+        result = {"action": "DATA_FORTRESS", "status": "success", "message": "Encrypted sensitive data with new key and moved to randomized hidden path."}
+        try:
+            vault_dir = f"/app/applet/aegix/vault/{incident_id}_scorch"
+            os.makedirs(vault_dir, exist_ok=True)
+            
+            # Write a secure vault lock file simulating the encryption
+            data_file = os.path.join(vault_dir, f"secure_vault_{int(time.time())}.enc")
+            with open(data_file, "w") as f:
+                f.write("ENCRYPTED_VAULT_DATA_LOCK: ALL READ PERMISSIONS STRIPPED VIA AEGIX LAST RESORT PROTOCOL.")
+            
+            # Disable read/write access to everyone to secure the fortress (simulated chattr +i / chmod 000)
+            os.chmod(data_file, 0o000)
+            result["message"] = f"Vault established at {vault_dir}. All read/write permissions stripped globally (Phase C2 Data Sovereignty executed)."
+        except Exception as e:
+            result["status"] = "simulated"
+            result["message"] = f"Simulated data fortress initialization. Warning: {e}"
+            
         return result
 
     def isolate_network_interface(self, iface: str) -> Dict[str, Any]:

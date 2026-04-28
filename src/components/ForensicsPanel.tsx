@@ -169,7 +169,7 @@ export default function ForensicsPanel() {
                 <button 
                   onClick={() => {
                     import('react-hot-toast').then(m => m.default.promise(
-                      api.sendSentinelCommand('YARA_SCAN'),
+                      api.sendAegixCommand('YARA_SCAN'),
                       { loading: "Running YARA Scan against artifact patterns...", success: "YARA Analysis finished. Generating rule profiles.", error: "YARA scan failed" }
                     ));
                   }}
